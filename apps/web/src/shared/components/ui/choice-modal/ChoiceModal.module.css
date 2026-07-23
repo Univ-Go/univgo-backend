@@ -1,0 +1,43 @@
+.optionButton {
+  position: relative;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.iconContainer {
+  position: relative;
+  z-index: 10; /* Mayor que el overlay para estar por encima */
+  transition: transform 0.3s ease;
+  color: white;
+}
+
+.optionButton:hover .iconContainer {
+  transform: scale(1.1);
+  color: white; /* Color rojo para hacer contraste con el azul */
+}
+
+.optionLabel {
+  position: relative;
+  z-index: 10; /* Mayor que el overlay para estar por encima */
+  color: white;
+}
+
+.optionButton:hover .optionLabel {
+  color: white; /* Color rojo para hacer contraste con el azul */
+}
+
+.fillOverlay {
+  position: absolute;
+  inset: 0; /* igual que top:0, right:0, bottom:0, left:0 */
+  background-color: #60A8A6; /* Color más oscuro (--primary-dark-blue) para que sea más visible */
+  opacity: 1; /* Color completamente opaco como en SocialMediaIcons */
+  transform-origin: bottom; /* el origen de la transformación es la parte inferior */
+  transform: scaleY(0); /* inicialmente está 'escondido' (altura 0) */
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* animación suave */
+  z-index: 1;
+}
+
+/* Cuando se hace hover, el overlay se rellena completamente */
+.optionButton:hover .fillOverlay {
+  transform: scaleY(1);
+}

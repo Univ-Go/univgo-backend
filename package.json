@@ -1,0 +1,41 @@
+{
+  "name": "univgo",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">\r   <img src=\"https://drive.google.com/uc?export=download&id=1G5DRy_K0lIGtc7k4Qthxg0D5LtSwoLsR\" alt=\"UnivGoLogo\" width=\"300\"/>\r </p>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build --workspace=apps/web",
+    "dev": "npm run dev --workspace=apps/web",
+    "start": "npm run start --workspace=apps/web"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaaysCode/UnivGo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/JaaysCode/UnivGo/issues"
+  },
+  "homepage": "https://github.com/JaaysCode/UnivGo#readme",
+  "workspaces": [
+    "apps/*",
+    "libs*"
+  ],
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.1.1",
+    "@mui/x-date-pickers": "^8.5.2",
+    "@nestjs/config": "^4.0.2",
+    "dayjs": "^1.11.13",
+    "framer-motion": "^12.18.1",
+    "motion": "^12.18.1"
+  }
+}

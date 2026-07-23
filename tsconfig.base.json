@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "CommonJS",
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["libs/core/src/*"]
+    },
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
