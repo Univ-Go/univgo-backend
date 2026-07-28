@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://<host>.neon.tech/<db>?sslmode=require
+    username: <db-user>
+    password: <db-password>
+
+jwt:
+  secret: <random-256-bit-secret>
