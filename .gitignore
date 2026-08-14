@@ -1,72 +1,33 @@
-# Dependencies
-node_modules/
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-# Compiled output
-/dist
-/build
-*.tsbuildinfo
-
-# Environment variables
-.env
-.env.local
-.env.test
-.env.test.local
-.env.development.local
-.env.production
-.env.production.local
-
-# Tests / coverage
-/coverage
-*.lcov
-/.nyc_output
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
-# Caches
-.npm
-.eslintcache
-.cache
-
-# Output of 'npm pack'
-*.tgz
-
-# Temporary folders
-tmp/
-temp/
-.temp
-.tmp
-
-# Editor directories and files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.idea/
-.project
+### STS ###
+.apt_generated
 .classpath
-.settings/
-*.launch
-*.sublime-workspace
-*.swp
-*.swo
-*~
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+/out/
+
+### VS Code ###
+.vscode/
+
+.env
+application-local.yml
+src/main/resources/db/migration/
 
 # OS generated files
 .DS_Store
