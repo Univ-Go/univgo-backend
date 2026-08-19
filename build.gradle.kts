@@ -1,4 +1,5 @@
 import org.springframework.boot.gradle.tasks.bundling.BootJar
+import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
     java
@@ -76,4 +77,12 @@ tasks.withType<Test> {
 
 tasks.named<BootJar>("bootJar") {
     archiveFileName.set("univgo-backend.jar")
+}
+
+tasks.register<BootRun>("dev") {
+    group = "application"
+    description = "Runs the app locally with the 'local' Spring profile active."
+    mainClass.set("com.univgo.backend.Application")
+    classpath = sourceSets["main"].runtimeClasspath
+    args("--spring.profiles.active=local")
 }
