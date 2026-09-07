@@ -27,7 +27,6 @@ bin/
 
 .env
 application-local.yml
-src/main/resources/db/migration/
 
 # OS generated files
 .DS_Store
