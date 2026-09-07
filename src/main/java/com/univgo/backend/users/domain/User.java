@@ -1,6 +1,6 @@
 package com.univgo.backend.users.domain;
 
-import com.univgo.backend.shared.domain.Role;
+import java.util.Set;
 import java.util.UUID;
 
 public class User {
@@ -10,15 +10,15 @@ public class User {
     private String firstName;
     private String lastName;
     private final String password;
-    private final Role role;
+    private final Set<String> roles;
 
-    public User(UUID id, String identification, String firstName, String lastName, String password, Role role) {
+    public User(UUID id, String identification, String firstName, String lastName, String password, Set<String> roles) {
         this.id = id;
         this.identification = identification;
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
-        this.role = role;
+        this.roles = roles;
     }
 
     public void rename(String firstName, String lastName) {
@@ -46,7 +46,7 @@ public class User {
         return password;
     }
 
-    public Role getRole() {
-        return role;
+    public Set<String> getRoles() {
+        return roles;
     }
 }

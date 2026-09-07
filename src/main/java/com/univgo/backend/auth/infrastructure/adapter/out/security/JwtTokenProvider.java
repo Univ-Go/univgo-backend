@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtTokenProvider implements TokenProviderPort {
 
-    private static final String CLAIM_ROLE = "role";
+    private static final String CLAIM_ROLES = "roles";
 
     private final Key signingKey;
     private final long expirationMillis;
@@ -34,7 +34,7 @@ public class JwtTokenProvider implements TokenProviderPort {
 
         return Jwts.builder()
                 .subject(user.getId().toString())
-                .claim(CLAIM_ROLE, user.getRole().name())
+                .claim(CLAIM_ROLES, user.getRoles())
                 .issuedAt(now)
                 .expiration(expiresAt)
                 .signWith(signingKey)

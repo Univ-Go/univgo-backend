@@ -1,11 +1,15 @@
 package com.univgo.backend.users.infrastructure.adapter.out.persistence;
 
-import com.univgo.backend.shared.domain.Role;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -27,20 +31,27 @@ public class UserJpaEntity {
     @Column(nullable = false)
     private String password;
 
-    @Convert(converter = RoleConverter.class)
-    @Column(nullable = false)
-    private Role role;
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
+    private Set<RoleJpaEntity> roles = new HashSet<>();
 
     protected UserJpaEntity() {
     }
 
-    public UserJpaEntity(UUID id, String identification, String firstName, String lastName, String password, Role role) {
+    public UserJpaEntity(UUID id, String identification, String firstName, String lastName, String password) {
         this.id = id;
         this.identification = identification;
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
-        this.role = role;
+    }
+
+    public void rename(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
     public UUID getId() {
@@ -63,7 +74,7 @@ public class UserJpaEntity {
         return password;
     }
 
-    public Role getRole() {
-        return role;
+    public Set<RoleJpaEntity> getRoles() {
+        return roles;
     }
 }
