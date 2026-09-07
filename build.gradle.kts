@@ -34,7 +34,7 @@ dependencies {
     // --- Persistencia (equivalente a TypeORM + pg) ---
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     runtimeOnly("org.postgresql:postgresql")
-    implementation("org.flywaydb:flyway-core")
+    implementation("org.springframework.boot:spring-boot-flyway")
     implementation("org.flywaydb:flyway-database-postgresql")
 
     // --- Seguridad / JWT (equivalente a @nestjs/jwt + bcryptjs) ---
