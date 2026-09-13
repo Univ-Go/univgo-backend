@@ -1,6 +1,7 @@
 package com.univgo.backend.shared.infrastructure;
 
 import com.univgo.backend.auth.domain.InvalidCredentialsException;
+import com.univgo.backend.auth.domain.InvalidRefreshTokenException;
 import com.univgo.backend.reservations.domain.GuestsNotFoundException;
 import com.univgo.backend.reservations.domain.InvalidReservationStateException;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
@@ -22,8 +23,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleInvalidCredentials(InvalidCredentialsException ex) {
+    @ExceptionHandler({InvalidCredentialsException.class, InvalidRefreshTokenException.class})
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(RuntimeException ex) {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
