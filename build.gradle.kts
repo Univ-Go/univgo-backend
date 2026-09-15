@@ -43,10 +43,6 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
-    // --- QR (equivalente a lib `qrcode`) ---
-    implementation("com.google.zxing:core:3.5.3")
-    implementation("com.google.zxing:javase:3.5.3")
-
     // --- Mapeo entre capas (domain <-> dto/entity, encaja con puertos hexagonal) ---
     implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
@@ -67,7 +63,7 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:junit-jupiter:1.20.4")
     testImplementation("org.testcontainers:postgresql:1.20.4")
-    testImplementation("io.rest-assured:rest-assured")
+    testImplementation("io.rest-assured:rest-assured:5.5.1")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
