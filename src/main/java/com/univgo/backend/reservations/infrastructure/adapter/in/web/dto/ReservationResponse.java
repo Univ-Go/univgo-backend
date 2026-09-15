@@ -1,11 +1,11 @@
 package com.univgo.backend.reservations.infrastructure.adapter.in.web.dto;
 
+import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
-import com.univgo.backend.reservations.domain.ReservationStatus;
+import com.univgo.backend.reservations.domain.ReservationState;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.UUID;
 
 public record ReservationResponse(
@@ -14,25 +14,32 @@ public record ReservationResponse(
         UUID userId,
         UUID spaceId,
         LocalDate reservationDate,
-        LocalTime startTime,
-        LocalTime endTime,
-        ReservationStatus status,
+        LocalTime blockStart,
+        LocalTime blockEnd,
+        ReservationState state,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt,
-        List<GuestResponse> guests) {
+        LocalDateTime checkedInAt,
+        LocalDateTime cancelledAt,
+        LocalDateTime checkInOpensAt,
+        LocalDateTime checkInClosesAt) {
 
-    public static ReservationResponse from(Reservation reservation) {
+    // Computed fresh on every read from the current "now" — never cached, per the
+    // spec's "la autoridad es el servidor".
+    public static ReservationResponse from(Reservation reservation, InstitutionConfig config) {
+        LocalDateTime now = LocalDateTime.now();
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getQrCodeData(),
                 reservation.getUserId(),
                 reservation.getSpaceId(),
                 reservation.getReservationDate(),
-                reservation.getStartTime(),
-                reservation.getEndTime(),
-                reservation.getStatus(),
+                reservation.getBlockStart(),
+                reservation.getBlockEnd(),
+                reservation.stateAt(now, config.tolerance(), config.minUsage()),
                 reservation.getCreatedAt(),
-                reservation.getUpdatedAt(),
-                reservation.getGuests().stream().map(GuestResponse::from).toList());
+                reservation.getCheckedInAt(),
+                reservation.getCancelledAt(),
+                reservation.checkInOpensAt(config.tolerance()),
+                reservation.checkInClosesAt(config.tolerance(), config.minUsage()));
     }
 }

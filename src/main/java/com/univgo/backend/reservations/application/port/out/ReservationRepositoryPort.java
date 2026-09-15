@@ -15,9 +15,15 @@ public interface ReservationRepositoryPort {
 
     Optional<Reservation> findById(UUID id);
 
+    Optional<Reservation> findByQrCodeData(String qrCodeData);
+
     Reservation save(Reservation reservation);
 
-    void deleteById(UUID id);
+    boolean existsOverlappingForUser(UUID userId, LocalDate date, LocalTime startTime, LocalTime endTime);
 
-    boolean existsOverlapping(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime);
+    long countActiveByUserSpaceAndDate(UUID userId, UUID spaceId, LocalDate date);
+
+    List<Reservation> findActiveByBlock(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime);
+
+    List<Reservation> findActiveBySpaceId(UUID spaceId);
 }

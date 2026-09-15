@@ -22,6 +22,37 @@ public class SpaceJpaEntity {
     @Column(name = "space_type_id", nullable = false)
     private UUID spaceTypeId;
 
+    @Column(name = "under_maintenance", nullable = false)
+    private boolean underMaintenance;
+
     protected SpaceJpaEntity() {
+    }
+
+    public SpaceJpaEntity(UUID id, String name, Integer capacity, UUID spaceTypeId, boolean underMaintenance) {
+        this.id = id;
+        this.name = name;
+        this.capacity = capacity;
+        this.spaceTypeId = spaceTypeId;
+        this.underMaintenance = underMaintenance;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public UUID getSpaceTypeId() {
+        return spaceTypeId;
+    }
+
+    public boolean isUnderMaintenance() {
+        return underMaintenance;
     }
 }

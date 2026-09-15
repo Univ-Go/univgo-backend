@@ -1,18 +1,14 @@
 package com.univgo.backend.reservations.infrastructure.adapter.out.persistence;
 
-import com.univgo.backend.reservations.domain.ReservationStatus;
+import com.univgo.backend.reservations.domain.CancelledBy;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -40,18 +36,18 @@ public class ReservationJpaEntity {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
-    @Convert(converter = ReservationStatusConverter.class)
-    @Column(nullable = false)
-    private ReservationStatus status;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "checked_in_at")
+    private LocalDateTime checkedInAt;
 
-    @OneToMany(mappedBy = "reservation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReservationGuestJpaEntity> guests = new ArrayList<>();
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Convert(converter = CancelledByConverter.class)
+    @Column(name = "cancelled_by")
+    private CancelledBy cancelledBy;
 
     protected ReservationJpaEntity() {
     }
@@ -64,9 +60,10 @@ public class ReservationJpaEntity {
             LocalDate reservationDate,
             LocalTime startTime,
             LocalTime endTime,
-            ReservationStatus status,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
+            LocalDateTime checkedInAt,
+            LocalDateTime cancelledAt,
+            CancelledBy cancelledBy) {
         this.id = id;
         this.qrCodeData = qrCodeData;
         this.userId = userId;
@@ -74,13 +71,10 @@ public class ReservationJpaEntity {
         this.reservationDate = reservationDate;
         this.startTime = startTime;
         this.endTime = endTime;
-        this.status = status;
         this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public void addGuest(ReservationGuestJpaEntity guest) {
-        guests.add(guest);
+        this.checkedInAt = checkedInAt;
+        this.cancelledAt = cancelledAt;
+        this.cancelledBy = cancelledBy;
     }
 
     public UUID getId() {
@@ -111,19 +105,19 @@ public class ReservationJpaEntity {
         return endTime;
     }
 
-    public ReservationStatus getStatus() {
-        return status;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
     }
 
-    public List<ReservationGuestJpaEntity> getGuests() {
-        return guests;
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public CancelledBy getCancelledBy() {
+        return cancelledBy;
     }
 }

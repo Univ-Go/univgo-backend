@@ -1,11 +1,17 @@
 package com.univgo.backend.reservations.domain;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.UUID;
 
+/**
+ * A reservation stores only the raw facts a human action produces: creation,
+ * check-in, cancellation. Its state is never one of them — it's derived on
+ * every read by {@link ReservationTimingCalculator#stateAt}, per the spec's
+ * "el estado se calcula, no se guarda."
+ */
 public class Reservation {
 
     private final UUID id;
@@ -13,12 +19,12 @@ public class Reservation {
     private final UUID userId;
     private final UUID spaceId;
     private final LocalDate reservationDate;
-    private final LocalTime startTime;
-    private final LocalTime endTime;
-    private ReservationStatus status;
+    private final LocalTime blockStart;
+    private final LocalTime blockEnd;
     private final LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private final List<ReservationGuest> guests;
+    private LocalDateTime checkedInAt;
+    private LocalDateTime cancelledAt;
+    private CancelledBy cancelledBy;
 
     public Reservation(
             UUID id,
@@ -26,37 +32,63 @@ public class Reservation {
             UUID userId,
             UUID spaceId,
             LocalDate reservationDate,
-            LocalTime startTime,
-            LocalTime endTime,
-            ReservationStatus status,
+            LocalTime blockStart,
+            LocalTime blockEnd,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt,
-            List<ReservationGuest> guests) {
-        if (!endTime.isAfter(startTime)) {
-            throw new IllegalArgumentException("endTime must be after startTime");
+            LocalDateTime checkedInAt,
+            LocalDateTime cancelledAt,
+            CancelledBy cancelledBy) {
+        if (!blockEnd.isAfter(blockStart)) {
+            throw new IllegalArgumentException("blockEnd must be after blockStart");
         }
         this.id = id;
         this.qrCodeData = qrCodeData;
         this.userId = userId;
         this.spaceId = spaceId;
         this.reservationDate = reservationDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.status = status;
+        this.blockStart = blockStart;
+        this.blockEnd = blockEnd;
         this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.guests = guests;
+        this.checkedInAt = checkedInAt;
+        this.cancelledAt = cancelledAt;
+        this.cancelledBy = cancelledBy;
     }
 
-    public void changeStatus(ReservationStatus newStatus) {
-        if (status == ReservationStatus.CANCELLED_BY_ADMIN
-                || status == ReservationStatus.CANCELLED_BY_USER
-                || status == ReservationStatus.COMPLETED
-                || status == ReservationStatus.EXPIRED) {
-            throw new InvalidReservationStateException(status, newStatus);
+    public ReservationState stateAt(LocalDateTime now, Duration tolerance, Duration minUsage) {
+        return ReservationTimingCalculator.stateAt(
+                now, blockStartDateTime(), blockEndDateTime(), createdAt, checkedInAt, cancelledAt, tolerance, minUsage);
+    }
+
+    public void cancel(CancelledBy actor, LocalDateTime now, Duration tolerance, Duration minUsage) {
+        ReservationState current = stateAt(now, tolerance, minUsage);
+        if (current == ReservationState.IN_PROGRESS) {
+            throw new CannotCancelInProgressReservationException(id);
         }
-        this.status = newStatus;
-        this.updatedAt = LocalDateTime.now();
+        if (current != ReservationState.RESERVED) {
+            throw new InvalidReservationStateException(current);
+        }
+        this.cancelledAt = now;
+        this.cancelledBy = actor;
+    }
+
+    public void checkIn(LocalDateTime now) {
+        this.checkedInAt = now;
+    }
+
+    public LocalDateTime checkInOpensAt(Duration tolerance) {
+        return ReservationTimingCalculator.checkInOpensAt(blockStartDateTime(), createdAt, tolerance);
+    }
+
+    public LocalDateTime checkInClosesAt(Duration tolerance, Duration minUsage) {
+        return ReservationTimingCalculator.checkInClosesAt(blockStartDateTime(), blockEndDateTime(), createdAt, tolerance, minUsage);
+    }
+
+    private LocalDateTime blockStartDateTime() {
+        return LocalDateTime.of(reservationDate, blockStart);
+    }
+
+    private LocalDateTime blockEndDateTime() {
+        return LocalDateTime.of(reservationDate, blockEnd);
     }
 
     public UUID getId() {
@@ -79,27 +111,27 @@ public class Reservation {
         return reservationDate;
     }
 
-    public LocalTime getStartTime() {
-        return startTime;
+    public LocalTime getBlockStart() {
+        return blockStart;
     }
 
-    public LocalTime getEndTime() {
-        return endTime;
-    }
-
-    public ReservationStatus getStatus() {
-        return status;
+    public LocalTime getBlockEnd() {
+        return blockEnd;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
     }
 
-    public List<ReservationGuest> getGuests() {
-        return guests;
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public CancelledBy getCancelledBy() {
+        return cancelledBy;
     }
 }

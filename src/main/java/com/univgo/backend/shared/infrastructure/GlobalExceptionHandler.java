@@ -2,11 +2,15 @@ package com.univgo.backend.shared.infrastructure;
 
 import com.univgo.backend.auth.domain.InvalidCredentialsException;
 import com.univgo.backend.auth.domain.InvalidRefreshTokenException;
-import com.univgo.backend.reservations.domain.GuestsNotFoundException;
+import com.univgo.backend.reservations.domain.BlockCapacityFullException;
+import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
+import com.univgo.backend.reservations.domain.CannotCancelInProgressReservationException;
 import com.univgo.backend.reservations.domain.InvalidReservationStateException;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
-import com.univgo.backend.reservations.domain.SpaceNotFoundException;
+import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
+import com.univgo.backend.reservations.domain.SpaceUnderMaintenanceException;
+import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
 import java.util.Map;
@@ -28,12 +32,20 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
-    @ExceptionHandler({GuestsNotFoundException.class, IllegalArgumentException.class})
+    @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(RuntimeException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
-    @ExceptionHandler({InvalidReservationStateException.class, ReservationOverlapException.class})
+    @ExceptionHandler({
+        InvalidReservationStateException.class,
+        ReservationOverlapException.class,
+        CannotCancelInProgressReservationException.class,
+        SpaceUnderMaintenanceException.class,
+        BlockCapacityFullException.class,
+        BlockNoLongerBookableException.class,
+        SpaceAlreadyReservedTodayException.class
+    })
     public ResponseEntity<Map<String, Object>> handleConflict(RuntimeException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }

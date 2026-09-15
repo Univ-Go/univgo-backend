@@ -1,4 +1,4 @@
-package com.univgo.backend.reservations.domain;
+package com.univgo.backend.spaces.domain;
 
 import java.util.UUID;
 

@@ -38,18 +38,37 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public Optional<Reservation> findByQrCodeData(String qrCodeData) {
+        return reservationJpaRepository.findByQrCodeData(qrCodeData).map(ReservationPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Reservation save(Reservation reservation) {
         var saved = reservationJpaRepository.save(ReservationPersistenceMapper.toEntity(reservation));
         return ReservationPersistenceMapper.toDomain(saved);
     }
 
     @Override
-    public void deleteById(UUID id) {
-        reservationJpaRepository.deleteById(id);
+    public boolean existsOverlappingForUser(UUID userId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return reservationJpaRepository.existsOverlappingForUser(userId, date, startTime, endTime);
     }
 
     @Override
-    public boolean existsOverlapping(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        return reservationJpaRepository.existsOverlapping(spaceId, date, startTime, endTime);
+    public long countActiveByUserSpaceAndDate(UUID userId, UUID spaceId, LocalDate date) {
+        return reservationJpaRepository.countActiveByUserSpaceAndDate(userId, spaceId, date);
+    }
+
+    @Override
+    public List<Reservation> findActiveByBlock(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime) {
+        return reservationJpaRepository.findActiveByBlock(spaceId, date, startTime, endTime).stream()
+                .map(ReservationPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Reservation> findActiveBySpaceId(UUID spaceId) {
+        return reservationJpaRepository.findBySpaceIdAndCancelledAtIsNull(spaceId).stream()
+                .map(ReservationPersistenceMapper::toDomain)
+                .toList();
     }
 }

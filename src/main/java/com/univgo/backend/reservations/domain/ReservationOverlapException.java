@@ -3,6 +3,6 @@ package com.univgo.backend.reservations.domain;
 public class ReservationOverlapException extends RuntimeException {
 
     public ReservationOverlapException() {
-        super("Space already reserved for the selected date and time range");
+        super("You already have a reservation that overlaps this time range");
     }
 }
