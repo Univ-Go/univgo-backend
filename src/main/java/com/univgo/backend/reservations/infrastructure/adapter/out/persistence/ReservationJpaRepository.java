@@ -56,6 +56,12 @@ public interface ReservationJpaRepository extends JpaRepository<ReservationJpaEn
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime);
 
+    List<ReservationJpaEntity> findByReservationDateAndCancelledAtIsNull(LocalDate reservationDate);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDateAndCancelledAtIsNull(UUID spaceId, LocalDate reservationDate);
+
+    List<ReservationJpaEntity> findByUserIdAndReservationDateAndCancelledAtIsNull(UUID userId, LocalDate reservationDate);
+
     Optional<ReservationJpaEntity> findByQrCodeData(String qrCodeData);
 
     List<ReservationJpaEntity> findBySpaceIdAndCancelledAtIsNull(UUID spaceId);

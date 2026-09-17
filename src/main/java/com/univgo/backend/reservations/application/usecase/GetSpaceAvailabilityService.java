@@ -4,6 +4,7 @@ import com.univgo.backend.reservations.application.port.in.GetSpaceAvailabilityU
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.BlockAvailability;
+import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.Reservation;
@@ -54,10 +55,27 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
                 spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(spaceId, dayOfWeek), config.blockDuration());
 
         LocalDateTime now = LocalDateTime.now();
-        boolean alreadyReservedToday = reservationRepositoryPort.countActiveByUserSpaceAndDate(requestingUserId, spaceId, date)
-                >= config.getReservationsPerSpacePerDay();
 
-        return blocks.stream().map(block -> toAvailability(space, date, block, now, config, alreadyReservedToday, requestingUserId)).toList();
+        // Two reads for the whole day instead of two per block: what the student already holds is
+        // the same answer for every block, and the overlap check is arithmetic once it is in hand.
+        BlockReservations reservations =
+                BlockReservations.of(reservationRepositoryPort.findActiveBySpaceAndDate(spaceId, date));
+        List<Reservation> studentsDay = reservationRepositoryPort.findActiveByUserAndDate(requestingUserId, date);
+
+        long heldHereToday =
+                studentsDay.stream().filter(reservation -> reservation.getSpaceId().equals(spaceId)).count();
+        boolean alreadyReservedToday = heldHereToday >= config.getReservationsPerSpacePerDay();
+
+        return blocks.stream()
+                .map(block -> toAvailability(space, date, block, now, config, alreadyReservedToday, reservations, studentsDay))
+                .toList();
+    }
+
+    /** A person cannot be in two places at once, whichever space the other reservation is for. */
+    private static boolean overlaps(List<Reservation> studentsDay, TimeBlock block) {
+        return studentsDay.stream()
+                .anyMatch(reservation -> reservation.getBlockStart().isBefore(block.end())
+                        && reservation.getBlockEnd().isAfter(block.start()));
     }
 
     private BlockAvailability toAvailability(
@@ -67,14 +85,15 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
             LocalDateTime now,
             InstitutionConfig config,
             boolean alreadyReservedToday,
-            UUID requestingUserId) {
-        List<Reservation> active = reservationRepositoryPort.findActiveByBlock(space.getId(), date, block.start(), block.end());
+            BlockReservations reservations,
+            List<Reservation> studentsDay) {
+        List<Reservation> active = reservations.of(space.getId(), block);
         long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
         int free = (int) Math.max(0, space.getCapacity() - occupied);
 
         boolean stillBookable =
                 ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance());
-        boolean overlaps = reservationRepositoryPort.existsOverlappingForUser(requestingUserId, date, block.start(), block.end());
+        boolean overlaps = overlaps(studentsDay, block);
         boolean offered = stillBookable && free > 0 && !alreadyReservedToday && !overlaps;
 
         LocalDateTime blockStartDateTime = LocalDateTime.of(date, block.start());

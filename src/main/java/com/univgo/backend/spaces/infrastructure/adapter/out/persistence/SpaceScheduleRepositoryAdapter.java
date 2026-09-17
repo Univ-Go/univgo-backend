@@ -17,7 +17,16 @@ public class SpaceScheduleRepositoryAdapter implements SpaceScheduleRepositoryPo
 
     @Override
     public List<SpaceSchedule> findBySpaceIdAndDayOfWeek(UUID spaceId, int dayOfWeek) {
-        return spaceScheduleJpaRepository.findBySpaceIdAndDayOfWeek(spaceId, (short) dayOfWeek).stream()
+        return toDomain(spaceScheduleJpaRepository.findBySpaceIdAndDayOfWeek(spaceId, (short) dayOfWeek));
+    }
+
+    @Override
+    public List<SpaceSchedule> findByDayOfWeek(int dayOfWeek) {
+        return toDomain(spaceScheduleJpaRepository.findByDayOfWeek((short) dayOfWeek));
+    }
+
+    private static List<SpaceSchedule> toDomain(List<SpaceScheduleJpaEntity> entities) {
+        return entities.stream()
                 .map(entity -> new SpaceSchedule(
                         entity.getId(), entity.getSpaceId(), entity.getDayOfWeek(), entity.getStartTime(), entity.getEndTime()))
                 .toList();

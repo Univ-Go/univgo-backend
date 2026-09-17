@@ -3,8 +3,6 @@ package com.univgo.backend.reservations.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
@@ -56,8 +54,8 @@ class GetSpaceCatalogServiceTest {
     void describesTheSpaceAndListsEveryBlockThatStillHasRoom() {
         when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, false)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
-        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt())).thenReturn(openFrom(14, 18));
-        when(reservationRepositoryPort.findActiveByBlock(any(), any(), any(), any())).thenReturn(List.of());
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
 
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
@@ -76,11 +74,8 @@ class GetSpaceCatalogServiceTest {
     void leavesOutBlocksWhoseCapacityIsFull() {
         when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(1, false)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
-        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt())).thenReturn(openFrom(14, 18));
-        when(reservationRepositoryPort.findActiveByBlock(SPACE_ID, FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0)))
-                .thenReturn(List.of(activeReservation()));
-        when(reservationRepositoryPort.findActiveByBlock(SPACE_ID, FUTURE_DATE, LocalTime.of(16, 0), LocalTime.of(18, 0)))
-                .thenReturn(List.of());
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of(activeReservation()));
 
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
@@ -91,7 +86,8 @@ class GetSpaceCatalogServiceTest {
     void offersNothingOnADayThatAlreadyPassed() {
         when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, false)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
-        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt())).thenReturn(openFrom(14, 18));
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(PAST_DATE)).thenReturn(List.of());
 
         List<SpaceCatalogItem> result = service.execute(PAST_DATE);
 
@@ -99,15 +95,16 @@ class GetSpaceCatalogServiceTest {
     }
 
     @Test
-    void aSpaceUnderMaintenanceOffersNoBlocksAndIsNeverQueried() {
+    void aSpaceUnderMaintenanceOffersNoBlocks() {
         when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, true)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
 
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
         assertThat(result.getFirst().underMaintenance()).isTrue();
         assertThat(result.getFirst().freeBlockStarts()).isEmpty();
-        verify(spaceScheduleRepositoryPort, never()).findBySpaceIdAndDayOfWeek(any(), anyInt());
     }
 
     private static Space space(int capacity, boolean underMaintenance) {

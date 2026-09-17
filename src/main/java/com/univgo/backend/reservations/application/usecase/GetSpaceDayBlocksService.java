@@ -3,6 +3,7 @@ package com.univgo.backend.reservations.application.usecase;
 import com.univgo.backend.reservations.application.port.in.GetSpaceDayBlocksUseCase;
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
+import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.SpaceBlockSummary;
@@ -44,11 +45,14 @@ public class GetSpaceDayBlocksService implements GetSpaceDayBlocksUseCase {
         LocalDateTime now = LocalDateTime.now();
 
         int dayOfWeek = date.getDayOfWeek().getValue();
+        BlockReservations reservations =
+                BlockReservations.of(reservationRepositoryPort.findActiveBySpaceAndDate(spaceId, date));
+
         return BlockGenerator.generate(
                         spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(spaceId, dayOfWeek), config.blockDuration())
                 .stream()
                 .map(block -> {
-                    var active = reservationRepositoryPort.findActiveByBlock(spaceId, date, block.start(), block.end());
+                    var active = reservations.of(spaceId, block);
                     long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
                     int free = (int) Math.max(0, space.getCapacity() - occupied);
                     return new SpaceBlockSummary(block, space.getCapacity(), (int) occupied, free);

@@ -58,9 +58,8 @@ class GetSpaceAvailabilityServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
-        when(reservationRepositoryPort.countActiveByUserSpaceAndDate(USER_ID, SPACE_ID, FUTURE_DATE)).thenReturn(0L);
-        when(reservationRepositoryPort.existsOverlappingForUser(any(), any(), any(), any())).thenReturn(false);
-        when(reservationRepositoryPort.findActiveByBlock(SPACE_ID, FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0)))
+        when(reservationRepositoryPort.findActiveByUserAndDate(USER_ID, FUTURE_DATE)).thenReturn(List.of());
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, FUTURE_DATE))
                 .thenReturn(List.of(activeReservation(), activeReservation(), activeReservation()));
 
         List<BlockAvailability> result = service.execute(SPACE_ID, FUTURE_DATE, USER_ID);
@@ -80,9 +79,8 @@ class GetSpaceAvailabilityServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
-        when(reservationRepositoryPort.countActiveByUserSpaceAndDate(USER_ID, SPACE_ID, FUTURE_DATE)).thenReturn(0L);
-        when(reservationRepositoryPort.existsOverlappingForUser(any(), any(), any(), any())).thenReturn(false);
-        when(reservationRepositoryPort.findActiveByBlock(SPACE_ID, FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0)))
+        when(reservationRepositoryPort.findActiveByUserAndDate(USER_ID, FUTURE_DATE)).thenReturn(List.of());
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, FUTURE_DATE))
                 .thenReturn(List.of(activeReservation()));
 
         BlockAvailability availability = service.execute(SPACE_ID, FUTURE_DATE, USER_ID).getFirst();
@@ -98,9 +96,11 @@ class GetSpaceAvailabilityServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
-        when(reservationRepositoryPort.countActiveByUserSpaceAndDate(USER_ID, SPACE_ID, FUTURE_DATE)).thenReturn(1L);
-        when(reservationRepositoryPort.existsOverlappingForUser(any(), any(), any(), any())).thenReturn(true);
-        when(reservationRepositoryPort.findActiveByBlock(any(), any(), any(), any())).thenReturn(List.of());
+        // The student's own reservation in this very block answers both questions at once, which is
+        // what the data has always said: a clash with oneself is also the day's reservation.
+        when(reservationRepositoryPort.findActiveByUserAndDate(USER_ID, FUTURE_DATE))
+                .thenReturn(List.of(reservationOf(USER_ID)));
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, FUTURE_DATE)).thenReturn(List.of());
 
         BlockAvailability availability = service.execute(SPACE_ID, FUTURE_DATE, USER_ID).getFirst();
 
@@ -120,10 +120,14 @@ class GetSpaceAvailabilityServiceTest {
     }
 
     private static Reservation activeReservation() {
+        return reservationOf(UUID.randomUUID());
+    }
+
+    private static Reservation reservationOf(UUID userId) {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
-                UUID.randomUUID(),
+                userId,
                 SPACE_ID,
                 FUTURE_DATE,
                 LocalTime.of(14, 0),

@@ -49,6 +49,25 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public List<Reservation> findActiveByDate(LocalDate date) {
+        return toDomain(reservationJpaRepository.findByReservationDateAndCancelledAtIsNull(date));
+    }
+
+    @Override
+    public List<Reservation> findActiveBySpaceAndDate(UUID spaceId, LocalDate date) {
+        return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDateAndCancelledAtIsNull(spaceId, date));
+    }
+
+    @Override
+    public List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date) {
+        return toDomain(reservationJpaRepository.findByUserIdAndReservationDateAndCancelledAtIsNull(userId, date));
+    }
+
+    private static List<Reservation> toDomain(List<ReservationJpaEntity> entities) {
+        return entities.stream().map(ReservationPersistenceMapper::toDomain).toList();
+    }
+
+    @Override
     public boolean existsOverlappingForUser(UUID userId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         return reservationJpaRepository.existsOverlappingForUser(userId, date, startTime, endTime);
     }
