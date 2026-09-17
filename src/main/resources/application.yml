@@ -15,7 +15,7 @@ spring:
     baseline-on-migrate: true
 
 server:
-  port: 3000
+  port: ${PORT:3000}
 
 jwt:
   secret: ${JWT_SECRET}
