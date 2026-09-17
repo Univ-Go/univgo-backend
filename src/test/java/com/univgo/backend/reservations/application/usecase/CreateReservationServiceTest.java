@@ -19,6 +19,7 @@ import com.univgo.backend.reservations.domain.SpaceUnderMaintenanceException;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import java.time.LocalDate;
@@ -168,7 +169,7 @@ class CreateReservationServiceTest {
     }
 
     private static Space space(int capacity, boolean underMaintenance) {
-        return new Space(SPACE_ID, "Test space", capacity, UUID.randomUUID(), underMaintenance);
+        return new Space(SPACE_ID, "Test space", "Bloque A", capacity, UUID.randomUUID(), SpaceCategory.SPORTS, underMaintenance);
     }
 
     private static SpaceSchedule schedule(LocalTime start, LocalTime end) {

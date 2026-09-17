@@ -13,5 +13,5 @@ public interface SpaceRepositoryPort {
 
     List<Space> findAll();
 
-    Space save(Space space);
+    void updateMaintenance(UUID id, boolean underMaintenance);
 }

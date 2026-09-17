@@ -13,6 +13,7 @@ import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,7 +53,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void reportsFreePlazasBasedOnCapacityMinusActiveReservations() {
-        Space space = new Space(SPACE_ID, "Gimnasio", 30, UUID.randomUUID(), false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, false);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -74,7 +75,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenFull() {
-        Space space = new Space(SPACE_ID, "Gimnasio", 1, UUID.randomUUID(), false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 1, UUID.randomUUID(), SpaceCategory.SPORTS, false);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -92,7 +93,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenAlreadyReservedTodayOrOverlapping() {
-        Space space = new Space(SPACE_ID, "Gimnasio", 30, UUID.randomUUID(), false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, false);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -110,7 +111,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void spaceUnderMaintenanceOffersNoBlocks() {
-        Space space = new Space(SPACE_ID, "Gimnasio", 30, UUID.randomUUID(), true);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, true);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
 
         List<BlockAvailability> result = service.execute(SPACE_ID, FUTURE_DATE, USER_ID);

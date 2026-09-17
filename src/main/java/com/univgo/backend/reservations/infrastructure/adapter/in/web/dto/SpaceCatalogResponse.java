@@ -1,12 +1,28 @@
 package com.univgo.backend.reservations.infrastructure.adapter.in.web.dto;
 
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
+import com.univgo.backend.spaces.domain.SpaceCategory;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.UUID;
 
-public record SpaceCatalogResponse(UUID spaceId, String name, int capacity, boolean underMaintenance, boolean hasFreeBlockToday) {
+public record SpaceCatalogResponse(
+        UUID spaceId,
+        String name,
+        String location,
+        SpaceCategory category,
+        int capacity,
+        boolean underMaintenance,
+        List<LocalTime> freeBlockStarts) {
 
     public static SpaceCatalogResponse from(SpaceCatalogItem item) {
         return new SpaceCatalogResponse(
-                item.spaceId(), item.name(), item.capacity(), item.underMaintenance(), item.hasFreeBlockToday());
+                item.spaceId(),
+                item.name(),
+                item.location(),
+                item.category(),
+                item.capacity(),
+                item.underMaintenance(),
+                item.freeBlockStarts());
     }
 }

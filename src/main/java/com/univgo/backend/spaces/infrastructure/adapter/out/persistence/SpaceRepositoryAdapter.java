@@ -32,14 +32,21 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
     }
 
     @Override
-    public Space save(Space space) {
-        var entity = new SpaceJpaEntity(
-                space.getId(), space.getName(), space.getCapacity(), space.getSpaceTypeId(), space.isUnderMaintenance());
-        return toDomain(spaceJpaRepository.save(entity));
+    public void updateMaintenance(UUID id, boolean underMaintenance) {
+        spaceJpaRepository.findById(id).ifPresent(entity -> {
+            entity.setUnderMaintenance(underMaintenance);
+            spaceJpaRepository.save(entity);
+        });
     }
 
     private static Space toDomain(SpaceJpaEntity entity) {
         return new Space(
-                entity.getId(), entity.getName(), entity.getCapacity(), entity.getSpaceTypeId(), entity.isUnderMaintenance());
+                entity.getId(),
+                entity.getName(),
+                entity.getLocation(),
+                entity.getCapacity(),
+                entity.getSpaceTypeId(),
+                entity.getSpaceType().getCategory(),
+                entity.isUnderMaintenance());
     }
 }

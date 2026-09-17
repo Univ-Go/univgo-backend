@@ -15,6 +15,7 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -38,33 +39,41 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
     }
 
     @Override
-    public List<SpaceCatalogItem> execute() {
+    public List<SpaceCatalogItem> execute(LocalDate date) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
         return spaceRepositoryPort.findAll().stream()
                 .map(space -> new SpaceCatalogItem(
                         space.getId(),
                         space.getName(),
+                        space.getLocation(),
+                        space.getCategory(),
                         space.getCapacity(),
                         space.isUnderMaintenance(),
-                        !space.isUnderMaintenance() && hasFreeBlockToday(space, today, now, config)))
+                        space.isUnderMaintenance() ? List.of() : freeBlockStarts(space, date, now, config)))
                 .toList();
     }
 
-    private boolean hasFreeBlockToday(Space space, LocalDate today, LocalDateTime now, InstitutionConfig config) {
-        int dayOfWeek = today.getDayOfWeek().getValue();
+    /**
+     * The catalog reads plazas but not the student: whether they already booked here today or clash
+     * with another reservation is answered by the availability of a single space, where there is
+     * room to explain it. Listing it here would hide the space instead.
+     */
+    private List<LocalTime> freeBlockStarts(Space space, LocalDate date, LocalDateTime now, InstitutionConfig config) {
+        int dayOfWeek = date.getDayOfWeek().getValue();
         List<TimeBlock> blocks = BlockGenerator.generate(
                 spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(space.getId(), dayOfWeek), config.blockDuration());
 
-        return blocks.stream().anyMatch(block -> {
-            if (!ReservationTimingCalculator.isBlockStillBookable(today, block.end(), now, config.minUsage(), config.tolerance())) {
-                return false;
-            }
-            List<Reservation> active = reservationRepositoryPort.findActiveByBlock(space.getId(), today, block.start(), block.end());
-            long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
-            return occupied < space.getCapacity();
-        });
+        return blocks.stream().filter(block -> hasRoom(space, date, block, now, config)).map(TimeBlock::start).toList();
+    }
+
+    private boolean hasRoom(Space space, LocalDate date, TimeBlock block, LocalDateTime now, InstitutionConfig config) {
+        if (!ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance())) {
+            return false;
+        }
+        List<Reservation> active = reservationRepositoryPort.findActiveByBlock(space.getId(), date, block.start(), block.end());
+        long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
+        return occupied < space.getCapacity();
     }
 }

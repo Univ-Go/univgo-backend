@@ -1,18 +1,15 @@
 package com.univgo.backend.spaces.application.usecase;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
-import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,22 +26,19 @@ class SetSpaceMaintenanceServiceTest {
     @Test
     void flagsAnExistingSpaceUnderMaintenance() {
         UUID spaceId = UUID.randomUUID();
-        Space space = new Space(spaceId, "Gimnasio", 30, UUID.randomUUID(), false);
-        when(spaceRepositoryPort.findById(spaceId)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.existsById(spaceId)).thenReturn(true);
 
         service.execute(spaceId, true);
 
-        ArgumentCaptor<Space> captor = ArgumentCaptor.forClass(Space.class);
-        verify(spaceRepositoryPort).save(captor.capture());
-        assertThat(captor.getValue().isUnderMaintenance()).isTrue();
-        assertThat(captor.getValue().getId()).isEqualTo(spaceId);
+        verify(spaceRepositoryPort).updateMaintenance(spaceId, true);
     }
 
     @Test
     void throwsWhenSpaceDoesNotExist() {
         UUID spaceId = UUID.randomUUID();
-        when(spaceRepositoryPort.findById(spaceId)).thenReturn(Optional.empty());
+        when(spaceRepositoryPort.existsById(spaceId)).thenReturn(false);
 
         assertThatThrownBy(() -> service.execute(spaceId, true)).isInstanceOf(SpaceNotFoundException.class);
+        verify(spaceRepositoryPort, never()).updateMaintenance(spaceId, true);
     }
 }

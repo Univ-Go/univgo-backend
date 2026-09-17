@@ -27,9 +27,12 @@ public class SpacesController {
         this.getSpaceAvailabilityUseCase = getSpaceAvailabilityUseCase;
     }
 
+    /** The day defaults to today: browsing the catalog without asking for a date means "now". */
     @GetMapping
-    public List<SpaceCatalogResponse> catalog() {
-        return getSpaceCatalogUseCase.execute().stream().map(SpaceCatalogResponse::from).toList();
+    public List<SpaceCatalogResponse> catalog(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate requested = date != null ? date : LocalDate.now();
+        return getSpaceCatalogUseCase.execute(requested).stream().map(SpaceCatalogResponse::from).toList();
     }
 
     @GetMapping("/{id}/availability")
