@@ -40,6 +40,10 @@ public class CheckInReservationService implements CheckInReservationUseCase {
             return CheckInResult.notExists();
         }
 
+        if (!reservation.getSpaceId().equals(command.spaceId())) {
+            return CheckInResult.otherBlock(reservation.getBlockStart(), reservation.getBlockEnd());
+        }
+
         if (command.expectedBlockStart() != null
                 && command.expectedBlockEnd() != null
                 && (!reservation.getBlockStart().equals(command.expectedBlockStart())
