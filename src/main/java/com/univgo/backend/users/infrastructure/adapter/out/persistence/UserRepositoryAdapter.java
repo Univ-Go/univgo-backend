@@ -29,8 +29,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public Optional<User> findByIdentification(String identification) {
-        return userJpaRepository.findByIdentification(identification).map(UserPersistenceMapper::toDomain);
+    public Optional<User> findByLoginIdentifier(String identifier) {
+        return userJpaRepository.findByLoginIdentifier(identifier).map(UserPersistenceMapper::toDomain);
     }
 
     @Override

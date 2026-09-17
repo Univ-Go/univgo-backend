@@ -4,8 +4,9 @@
 --   psql "$DATABASE_URL" -f src/main/resources/db/seed/seed_gym_data.sql
 --
 -- Seed users:
---   STUDENT  id=1234567890  password=Contrasena123!
---   ADMIN    id=0987654321  password=Admin123!
+--   STUDENT  id=1234567890  sofia.ramirez@univgo.edu  password=Contrasena123!
+--   ADMIN    id=0987654321  daniel.ortiz@univgo.edu   password=Admin123!
+-- Either the id or the email works as the sign-in identifier.
 -- (BCrypt hashes generated with `htpasswd -bnBC 10 "" '<password>'`)
 --
 -- NOTE: space_types NOT seeded here (already present in DB). All spaces
@@ -24,9 +25,9 @@
 -- base 'STUDENT'/'ADMIN' rows from V3__rbac.sql already exist in roles.
 
 WITH new_users AS (
-  INSERT INTO users (identification, first_name, last_name, password) VALUES
-    ('1234567890', 'Sofía',  'Ramírez', '$2y$10$r4SK4wpDkunqexE22aptR.m5D87PaQNKXOTnN1Wj1ouH5q2lMC8u.'),
-    ('0987654321', 'Daniel', 'Ortiz',   '$2y$10$194Q5TZUyHAKqXJeyKEew.xtL3tnNWfM0b.pCiVwbKZkWbYCUxxbK')
+  INSERT INTO users (identification, email, first_name, last_name, password) VALUES
+    ('1234567890', 'sofia.ramirez@univgo.edu',  'Sofía',  'Ramírez', '$2y$10$r4SK4wpDkunqexE22aptR.m5D87PaQNKXOTnN1Wj1ouH5q2lMC8u.'),
+    ('0987654321', 'daniel.ortiz@univgo.edu',   'Daniel', 'Ortiz',   '$2y$10$194Q5TZUyHAKqXJeyKEew.xtL3tnNWfM0b.pCiVwbKZkWbYCUxxbK')
   RETURNING id, identification
 ),
 

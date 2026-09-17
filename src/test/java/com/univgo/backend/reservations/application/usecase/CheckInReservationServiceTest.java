@@ -145,6 +145,6 @@ class CheckInReservationServiceTest {
     }
 
     private static User student() {
-        return new User(UUID.randomUUID(), "123", "Ada", "Lovelace", "hash", Set.of("STUDENT"));
+        return new User(UUID.randomUUID(), "123", "ada@univgo.edu", "Ada", "Lovelace", "hash", Set.of("STUDENT"));
     }
 }

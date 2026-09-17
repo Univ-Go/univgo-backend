@@ -16,6 +16,7 @@ final class UserPersistenceMapper {
         return new User(
                 entity.getId(),
                 entity.getIdentification(),
+                entity.getEmail(),
                 entity.getFirstName(),
                 entity.getLastName(),
                 entity.getPassword(),
