@@ -20,9 +20,19 @@ public record SpaceBlockDetailResponse(
                 detail.roster().stream().map(OccupantResponse::from).toList());
     }
 
-    public record OccupantResponse(String studentName, ReservationState state, LocalDateTime checkedInAt) {
+    public record OccupantResponse(
+            String studentName,
+            String document,
+            String school,
+            ReservationState state,
+            LocalDateTime checkedInAt) {
         public static OccupantResponse from(OccupantView occupant) {
-            return new OccupantResponse(occupant.studentName(), occupant.state(), occupant.checkedInAt());
+            return new OccupantResponse(
+                    occupant.studentName(),
+                    occupant.document(),
+                    occupant.school(),
+                    occupant.state(),
+                    occupant.checkedInAt());
         }
     }
 }

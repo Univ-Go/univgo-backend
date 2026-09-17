@@ -34,7 +34,7 @@ class LoginServiceTest {
     private static final String PASSWORD = "Contrasena123!";
     private static final User USER = new User(
             UUID.randomUUID(), "1234567890", "sofia.ramirez@univgo.edu", "Sofía", "Ramírez", "hash",
-            Set.of("STUDENT"));
+            Set.of("STUDENT"), "Facultad de Ingeniería");
 
     @Mock
     private UserRepositoryPort userRepositoryPort;

@@ -12,6 +12,7 @@ public class User {
     private String lastName;
     private final String password;
     private final Set<String> roles;
+    private final String school;
 
     public User(
             UUID id,
@@ -20,7 +21,8 @@ public class User {
             String firstName,
             String lastName,
             String password,
-            Set<String> roles) {
+            Set<String> roles,
+            String school) {
         this.id = id;
         this.identification = identification;
         this.email = email;
@@ -28,6 +30,7 @@ public class User {
         this.lastName = lastName;
         this.password = password;
         this.roles = roles;
+        this.school = school;
     }
 
     public void rename(String firstName, String lastName) {
@@ -61,5 +64,9 @@ public class User {
 
     public Set<String> getRoles() {
         return roles;
+    }
+
+    public String getSchool() {
+        return school;
     }
 }

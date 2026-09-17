@@ -13,10 +13,12 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import com.univgo.backend.users.domain.User;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -51,16 +53,23 @@ public class GetSpaceBlockDetailService implements GetSpaceBlockDetailUseCase {
         int free = (int) Math.max(0, space.getCapacity() - occupied);
 
         List<OccupantView> roster = active.stream()
-                .map(r -> new OccupantView(
-                        studentName(r.getUserId()), r.stateAt(now, config.tolerance(), config.minUsage()), r.getCheckedInAt()))
+                .map(r -> toOccupantView(r, now, config))
                 .toList();
 
         return new SpaceBlockDetail(new TimeBlock(blockStart, blockEnd), space.getCapacity(), (int) occupied, free, roster);
     }
 
-    private String studentName(UUID userId) {
-        return userRepositoryPort.findById(userId)
-                .map(user -> user.getFirstName() + " " + user.getLastName())
-                .orElse("Unknown student");
+    private OccupantView toOccupantView(Reservation reservation, LocalDateTime now, InstitutionConfig config) {
+        Optional<User> student = userRepositoryPort.findById(reservation.getUserId());
+        String studentName = student.map(user -> user.getFirstName() + " " + user.getLastName()).orElse("Unknown student");
+        String document = student.map(User::getIdentification).orElse(null);
+        String school = student.map(User::getSchool).orElse(null);
+
+        return new OccupantView(
+                studentName,
+                document,
+                school,
+                reservation.stateAt(now, config.tolerance(), config.minUsage()),
+                reservation.getCheckedInAt());
     }
 }

@@ -35,6 +35,8 @@ public class UserJpaEntity {
     @Column(nullable = false)
     private String password;
 
+    private String school;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -82,6 +84,10 @@ public class UserJpaEntity {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getSchool() {
+        return school;
     }
 
     public Set<RoleJpaEntity> getRoles() {

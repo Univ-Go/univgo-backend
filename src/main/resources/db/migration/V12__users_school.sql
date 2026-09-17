@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN school VARCHAR(150);

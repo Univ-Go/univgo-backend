@@ -20,6 +20,7 @@ final class UserPersistenceMapper {
                 entity.getFirstName(),
                 entity.getLastName(),
                 entity.getPassword(),
-                roles);
+                roles,
+                entity.getSchool());
     }
 }

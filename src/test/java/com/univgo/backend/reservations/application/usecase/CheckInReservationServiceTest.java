@@ -46,12 +46,14 @@ class CheckInReservationServiceTest {
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
     private static final LocalDate FUTURE_DATE = LocalDate.now().plusDays(7);
     private static final String CODE = "some-qr-code";
+    private static final UUID SPACE_ID = UUID.randomUUID();
+    private static final UUID OTHER_SPACE_ID = UUID.randomUUID();
 
     @Test
     void unknownCodeIsNotExists() {
         when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.empty());
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.NOT_EXISTS);
     }
@@ -62,9 +64,21 @@ class CheckInReservationServiceTest {
         reservation.cancel(CancelledBy.STUDENT, LocalDateTime.now(), CONFIG.tolerance(), CONFIG.minUsage());
         when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.of(reservation));
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.NOT_EXISTS);
+    }
+
+    @Test
+    void mismatchedSpaceIsOtherBlock() {
+        Reservation reservation = reservationOn(FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0), LocalDateTime.now());
+        when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.of(reservation));
+
+        CheckInResult result = service.execute(new CheckInCommand(CODE, OTHER_SPACE_ID, null, null));
+
+        assertThat(result.verdict()).isEqualTo(CheckInVerdict.OTHER_BLOCK);
+        assertThat(result.otherBlockStart()).isEqualTo(LocalTime.of(14, 0));
+        assertThat(result.otherBlockEnd()).isEqualTo(LocalTime.of(16, 0));
     }
 
     @Test
@@ -72,7 +86,7 @@ class CheckInReservationServiceTest {
         Reservation reservation = reservationOn(FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0), LocalDateTime.now());
         when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.of(reservation));
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, LocalTime.of(16, 0), LocalTime.of(18, 0)));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, LocalTime.of(16, 0), LocalTime.of(18, 0)));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.OTHER_BLOCK);
         assertThat(result.otherBlockStart()).isEqualTo(LocalTime.of(14, 0));
@@ -86,7 +100,7 @@ class CheckInReservationServiceTest {
         when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.of(reservation));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.TOO_EARLY);
         assertThat(result.opensAt()).isNotNull();
@@ -100,7 +114,7 @@ class CheckInReservationServiceTest {
         when(reservationRepositoryPort.findByQrCodeData(CODE)).thenReturn(Optional.of(reservation));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.EXPIRED_ALREADY);
         verify(reservationRepositoryPort, never()).save(any());
@@ -114,7 +128,7 @@ class CheckInReservationServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(userRepositoryPort.findById(reservation.getUserId())).thenReturn(Optional.of(student()));
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.ALREADY_USED);
     }
@@ -131,7 +145,7 @@ class CheckInReservationServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(userRepositoryPort.findById(reservation.getUserId())).thenReturn(Optional.of(student()));
 
-        CheckInResult result = service.execute(new CheckInCommand(CODE, null, null));
+        CheckInResult result = service.execute(new CheckInCommand(CODE, SPACE_ID, null, null));
 
         assertThat(result.verdict()).isEqualTo(CheckInVerdict.VALID);
         assertThat(result.studentName()).isEqualTo("Ada Lovelace");
@@ -141,10 +155,12 @@ class CheckInReservationServiceTest {
 
     private static Reservation reservationOn(LocalDate date, LocalTime start, LocalTime end, LocalDateTime createdAt) {
         return new Reservation(
-                UUID.randomUUID(), CODE, UUID.randomUUID(), UUID.randomUUID(), date, start, end, createdAt, null, null, null);
+                UUID.randomUUID(), CODE, UUID.randomUUID(), SPACE_ID, date, start, end, createdAt, null, null, null);
     }
 
     private static User student() {
-        return new User(UUID.randomUUID(), "123", "ada@univgo.edu", "Ada", "Lovelace", "hash", Set.of("STUDENT"));
+        return new User(
+                UUID.randomUUID(), "123", "ada@univgo.edu", "Ada", "Lovelace", "hash", Set.of("STUDENT"),
+                "Facultad de Ingeniería");
     }
 }
