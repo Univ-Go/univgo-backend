@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,22 +40,26 @@ public class UsersController {
         this.deleteUserUseCase = deleteUserUseCase;
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public List<UserResponse> findAll() {
         return getAllUsersUseCase.execute().stream().map(UserResponse::from).toList();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.name")
     @GetMapping("/{id}")
     public UserResponse findById(@PathVariable UUID id) {
         return UserResponse.from(getUserByIdUseCase.execute(id));
     }
 
+    @PreAuthorize("hasRole('ADMIN') or #id.toString() == authentication.name")
     @PatchMapping("/{id}")
     public UserResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateUserRequest request) {
         var command = new UpdateUserCommand(request.firstName(), request.lastName());
         return UserResponse.from(updateUserUseCase.execute(id, command));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         deleteUserUseCase.execute(id);
