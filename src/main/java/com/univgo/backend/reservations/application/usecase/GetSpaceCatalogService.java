@@ -68,23 +68,11 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
 
         return spaceRepositoryPort.findAll().stream()
-                .map(space -> new SpaceCatalogItem(
-                        space.getId(),
-                        space.getName(),
-                        space.getLocation(),
-                        space.getCategory(),
-                        space.getCapacity(),
-                        closures.shutAt(space.getId(), now),
-                        freeBlockStarts(space, date, now, config, schedules, reservations, closures)))
+                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures))
                 .toList();
     }
 
-    /**
-     * The catalog reads plazas but not the student: whether they already booked here today or clash
-     * with another reservation is answered by the availability of a single space, where there is
-     * room to explain it. Listing it here would hide the space instead.
-     */
-    private List<LocalTime> freeBlockStarts(
+    private SpaceCatalogItem toCatalogItem(
             Space space,
             LocalDate date,
             LocalDateTime now,
@@ -95,6 +83,37 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
         List<TimeBlock> blocks = BlockGenerator.generate(
                 schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
 
+        // Three different silences, told apart here because the catalog is where somebody decides
+        // whether to walk over: a space with no hours that day, one that is shut, and a full one.
+        boolean opensOnDate = !blocks.isEmpty();
+        boolean closedOnDate = opensOnDate
+                && blocks.stream().allMatch(block -> closures.shut(space.getId(), date, block.start(), block.end()));
+
+        return new SpaceCatalogItem(
+                space.getId(),
+                space.getName(),
+                space.getLocation(),
+                space.getCategory(),
+                space.getCapacity(),
+                closures.shutAt(space.getId(), now),
+                opensOnDate,
+                closedOnDate,
+                freeBlockStarts(blocks, space, date, now, config, reservations, closures));
+    }
+
+    /**
+     * The catalog reads plazas but not the student: whether they already booked here today or clash
+     * with another reservation is answered by the availability of a single space, where there is
+     * room to explain it. Listing it here would hide the space instead.
+     */
+    private List<LocalTime> freeBlockStarts(
+            List<TimeBlock> blocks,
+            Space space,
+            LocalDate date,
+            LocalDateTime now,
+            InstitutionConfig config,
+            BlockReservations reservations,
+            SpaceClosures closures) {
         return blocks.stream()
                 .filter(block -> !closures.shut(space.getId(), date, block.start(), block.end()))
                 .filter(block -> hasRoom(space, date, block, now, config, reservations, closures))

@@ -73,6 +73,8 @@ class GetSpaceCatalogServiceTest {
         assertThat(item.category()).isEqualTo(SpaceCategory.SPORTS);
         assertThat(item.capacity()).isEqualTo(30);
         assertThat(item.underMaintenance()).isFalse();
+        assertThat(item.opensOnDate()).isTrue();
+        assertThat(item.closedOnDate()).isFalse();
         assertThat(item.freeBlockStarts()).containsExactly(LocalTime.of(14, 0), LocalTime.of(16, 0));
     }
 
@@ -97,6 +99,9 @@ class GetSpaceCatalogServiceTest {
 
         List<SpaceCatalogItem> result = service.execute(PAST_DATE);
 
+        // It opened and it is not shut: what is gone is the day, and that is a third thing.
+        assertThat(result.getFirst().opensOnDate()).isTrue();
+        assertThat(result.getFirst().closedOnDate()).isFalse();
         assertThat(result.getFirst().freeBlockStarts()).isEmpty();
     }
 
@@ -111,6 +116,7 @@ class GetSpaceCatalogServiceTest {
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
         assertThat(result.getFirst().underMaintenance()).isTrue();
+        assertThat(result.getFirst().closedOnDate()).isTrue();
         assertThat(result.getFirst().freeBlockStarts()).isEmpty();
     }
 
