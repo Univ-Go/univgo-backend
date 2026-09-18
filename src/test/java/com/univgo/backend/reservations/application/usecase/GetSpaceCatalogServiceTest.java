@@ -3,6 +3,7 @@ package com.univgo.backend.reservations.application.usecase;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
@@ -11,6 +12,7 @@ import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
@@ -22,7 +24,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,8 +51,16 @@ class GetSpaceCatalogServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
+    @Mock
+    private SpaceImageRepositoryPort spaceImageRepositoryPort;
+
     @InjectMocks
     private GetSpaceCatalogService service;
+
+    @BeforeEach
+    void noImagesUnlessATestSaysOtherwise() {
+        lenient().when(spaceImageRepositoryPort.findAllImageUrls()).thenReturn(Map.of());
+    }
 
     private static final UUID SPACE_ID = UUID.randomUUID();
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
@@ -136,6 +148,32 @@ class GetSpaceCatalogServiceTest {
         // The space is open right now — the closure is a week away — so only its blocks go.
         assertThat(result.getFirst().underMaintenance()).isFalse();
         assertThat(result.getFirst().freeBlockStarts()).containsExactly(LocalTime.of(16, 0));
+    }
+
+    @Test
+    void aSpaceWithNoPhotographsUploadedGetsAnEmptyList() {
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
+
+        List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
+
+        assertThat(result.getFirst().images()).isEmpty();
+    }
+
+    @Test
+    void carriesTheSpacesPhotographsFromTheImagePort() {
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
+        when(spaceImageRepositoryPort.findAllImageUrls())
+                .thenReturn(Map.of(SPACE_ID, List.of("https://example.com/cover.webp")));
+
+        List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
+
+        assertThat(result.getFirst().images()).containsExactly("https://example.com/cover.webp");
     }
 
     private static SpaceClosure indefiniteClosure() {

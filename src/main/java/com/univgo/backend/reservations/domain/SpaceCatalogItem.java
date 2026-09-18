@@ -15,6 +15,9 @@ import java.util.UUID;
  * <p>An empty list on its own cannot say why, and the three whys are different things to a person
  * deciding where to walk: the space does not open that day, it is shut, or every block is taken.
  * {@code opensOnDate} and {@code closedOnDate} are what tell them apart.
+ *
+ * <p>{@code images} is ordered with the cover first, and empty for a space with no photographs
+ * uploaded yet — the frontend falls back to its brand placeholder in that case.
  */
 public record SpaceCatalogItem(
         UUID spaceId,
@@ -25,5 +28,6 @@ public record SpaceCatalogItem(
         boolean underMaintenance,
         boolean opensOnDate,
         boolean closedOnDate,
-        List<LocalTime> freeBlockStarts) {
+        List<LocalTime> freeBlockStarts,
+        List<String> images) {
 }

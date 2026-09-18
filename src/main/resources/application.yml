@@ -38,3 +38,11 @@ auth:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+aws:
+  s3:
+    endpoint: ${AWS_ENDPOINT_URL_S3}
+    region: ${AWS_REGION}
+    access-key-id: ${AWS_ACCESS_KEY_ID}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+    bucket: ${AWS_S3_BUCKET}

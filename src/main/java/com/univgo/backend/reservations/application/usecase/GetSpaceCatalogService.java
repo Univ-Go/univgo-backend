@@ -9,6 +9,7 @@ import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.BlockGenerator;
@@ -38,18 +39,21 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final SpaceImageRepositoryPort spaceImageRepositoryPort;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            SpaceImageRepositoryPort spaceImageRepositoryPort) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.spaceImageRepositoryPort = spaceImageRepositoryPort;
     }
 
     @Override
@@ -66,9 +70,10 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
         // One query for every space's closures, like the schedules and the reservations above: the
         // catalog reads the whole campus, so asking space by space is where the seconds went.
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
+        Map<UUID, List<String>> images = spaceImageRepositoryPort.findAllImageUrls();
 
         return spaceRepositoryPort.findAll().stream()
-                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures))
+                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures, images))
                 .toList();
     }
 
@@ -79,7 +84,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
             InstitutionConfig config,
             Map<UUID, List<SpaceSchedule>> schedules,
             BlockReservations reservations,
-            SpaceClosures closures) {
+            SpaceClosures closures,
+            Map<UUID, List<String>> images) {
         List<TimeBlock> blocks = BlockGenerator.generate(
                 schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
 
@@ -98,7 +104,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
                 closures.shutAt(space.getId(), now),
                 opensOnDate,
                 closedOnDate,
-                freeBlockStarts(blocks, space, date, now, config, reservations, closures));
+                freeBlockStarts(blocks, space, date, now, config, reservations, closures),
+                images.getOrDefault(space.getId(), List.of()));
     }
 
     /**

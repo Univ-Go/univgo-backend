@@ -42,6 +42,10 @@ también están gitignored a propósito — se aplican solas al levantar la app.
 | `jwt.secret`             | Secreto para firmar los JWT.                   |
 | `jwt.expiration`         | Vigencia del token en milisegundos.            |
 | `server.port`            | Puerto HTTP. Por defecto `3000`.               |
+| `aws.s3.endpoint`        | Endpoint S3-compatible del bucket (Neon).      |
+| `aws.s3.region`          | Región que reporta el bucket.                  |
+| `aws.s3.access-key-id` / `aws.s3.secret-access-key` | Credenciales del bucket. Sin acceso de escritura desde la app: las imágenes se suben a mano. |
+| `aws.s3.bucket`          | Nombre del bucket. Fotos de espacio en `spaces/{spaceId}/{archivo}`. |
 
 ## Comandos
 
