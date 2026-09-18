@@ -1,5 +1,6 @@
 package com.univgo.backend.reservations.domain;
 
+import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDateTime;
 
@@ -19,6 +20,8 @@ public record BlockAvailability(
         boolean overlapsUserReservation,
         /** The space is shut for this block, which is why it is not on offer (spec §12). */
         boolean closed,
+        /** Why it is shut, so the student reads "cerrado por mantenimiento" and not a blank refusal. */
+        ClosureReason closureReason,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 }

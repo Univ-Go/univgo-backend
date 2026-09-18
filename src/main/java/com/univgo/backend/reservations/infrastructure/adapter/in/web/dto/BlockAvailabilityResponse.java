@@ -1,6 +1,7 @@
 package com.univgo.backend.reservations.infrastructure.adapter.in.web.dto;
 
 import com.univgo.backend.reservations.domain.BlockAvailability;
+import com.univgo.backend.spaces.domain.ClosureReason;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
@@ -14,6 +15,7 @@ public record BlockAvailabilityResponse(
         boolean alreadyReservedByUserToday,
         boolean overlapsUserReservation,
         boolean closed,
+        ClosureReason closureReason,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 
@@ -28,6 +30,7 @@ public record BlockAvailabilityResponse(
                 availability.alreadyReservedByUserToday(),
                 availability.overlapsUserReservation(),
                 availability.closed(),
+                availability.closureReason(),
                 availability.previewCheckInOpensAt(),
                 availability.previewCheckInClosesAt());
     }
