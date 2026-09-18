@@ -2,6 +2,8 @@ package com.univgo.backend.spaces.infrastructure.adapter.out.storage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.shared.config.S3Properties;
@@ -78,6 +80,17 @@ class S3SpaceImageRepositoryAdapterTest {
         Map<UUID, List<String>> result = adapter.findAllImageUrls();
 
         assertThat(result).containsOnlyKeys(SPACE_ID, otherSpace);
+    }
+
+    @Test
+    void reusesTheSamePresignedUrlsInsteadOfResigningOnEveryCall() {
+        givenBucketContains(object("spaces/" + SPACE_ID + "/a.webp", Instant.parse("2026-01-01T00:00:00Z")));
+
+        Map<UUID, List<String>> first = adapter.findAllImageUrls();
+        Map<UUID, List<String>> second = adapter.findAllImageUrls();
+
+        assertThat(second).isEqualTo(first);
+        verify(s3Client, times(1)).listObjectsV2(any(ListObjectsV2Request.class));
     }
 
     @Test

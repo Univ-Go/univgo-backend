@@ -3,6 +3,7 @@ package com.univgo.backend.spaces.infrastructure.adapter.out.storage;
 import com.univgo.backend.shared.config.S3Properties;
 import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,6 +30,14 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
  * the same reason {@code GetSpaceCatalogService} batches schedules and reservations instead of
  * asking per space. A single page (up to 1000 keys) covers the catalogue's real scale; move to
  * {@code listObjectsV2Paginator} if the bucket ever needs more than one.
+ *
+ * <p>Re-signing on every call defeated caching everywhere downstream: SigV4 bakes the request
+ * timestamp into the signature, so the same photograph got a different URL on every catalogue
+ * read, and neither the browser nor a CDN in front of it can cache a URL that never repeats. The
+ * listing and the presigned URLs it produces are cached in memory for {@link #CACHE_DURATION},
+ * comfortably inside {@link #PRESIGN_DURATION}, so the same photograph answers with the same URL
+ * for as long as that URL is still good — and one process listing the bucket is enough; a bounded
+ * cache is not worth the coordination cost since the list is small and rebuilds cheaply.
  */
 @Component
 public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
@@ -38,10 +47,15 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
     // Long enough to outlive a browsing session on the catalogue, short enough that a link copied
     // out of the app goes stale on its own rather than staying valid forever.
     private static final Duration PRESIGN_DURATION = Duration.ofMinutes(60);
+    // Refreshed a margin before the signature actually expires, so a request never serves a URL
+    // that goes stale seconds after it reaches the browser.
+    private static final Duration CACHE_DURATION = PRESIGN_DURATION.minusMinutes(5);
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
     private final S3Properties properties;
+
+    private volatile CachedUrls cache;
 
     public S3SpaceImageRepositoryAdapter(S3Client s3Client, S3Presigner s3Presigner, S3Properties properties) {
         this.s3Client = s3Client;
@@ -51,6 +65,27 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
 
     @Override
     public Map<UUID, List<String>> findAllImageUrls() {
+        CachedUrls cached = cache;
+
+        if (cached != null && cached.isValidAt(Instant.now())) {
+            return cached.urls();
+        }
+
+        synchronized (this) {
+            cached = cache;
+
+            if (cached != null && cached.isValidAt(Instant.now())) {
+                return cached.urls();
+            }
+
+            Map<UUID, List<String>> fresh = listAndPresign();
+            cache = new CachedUrls(fresh, Instant.now().plus(CACHE_DURATION));
+
+            return fresh;
+        }
+    }
+
+    private Map<UUID, List<String>> listAndPresign() {
         ListObjectsV2Request request =
                 ListObjectsV2Request.builder().bucket(properties.bucket()).prefix(PREFIX).build();
 
@@ -93,5 +128,11 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
     }
 
     private record ImageKey(UUID spaceId, S3Object object) {
+    }
+
+    private record CachedUrls(Map<UUID, List<String>> urls, Instant expiresAt) {
+        boolean isValidAt(Instant now) {
+            return now.isBefore(expiresAt);
+        }
     }
 }
