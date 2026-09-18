@@ -7,10 +7,13 @@ import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.SpaceBlockSummary;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceClosure;
+import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -26,16 +29,19 @@ public class GetSpaceDayBlocksService implements GetSpaceDayBlocksUseCase {
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
     public GetSpaceDayBlocksService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
-            InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
     }
 
     @Override
@@ -47,15 +53,27 @@ public class GetSpaceDayBlocksService implements GetSpaceDayBlocksUseCase {
         int dayOfWeek = date.getDayOfWeek().getValue();
         BlockReservations reservations =
                 BlockReservations.of(reservationRepositoryPort.findActiveBySpaceAndDate(spaceId, date));
+        SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
 
         return BlockGenerator.generate(
                         spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(spaceId, dayOfWeek), config.blockDuration())
                 .stream()
                 .map(block -> {
                     var active = reservations.of(spaceId, block);
-                    long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
+                    long occupied = OccupancyCounter.countOccupiedPlazas(active, closures, now, config);
                     int free = (int) Math.max(0, space.getCapacity() - occupied);
-                    return new SpaceBlockSummary(block, space.getCapacity(), (int) occupied, free);
+                    // A closed block reports why rather than an aforo nobody can use: a block shown
+                    // as available invites counting on places that do not exist.
+                    SpaceClosure closure = closures
+                            .covering(spaceId, date, block.start(), block.end())
+                            .orElse(null);
+                    return new SpaceBlockSummary(
+                            block,
+                            space.getCapacity(),
+                            (int) occupied,
+                            free,
+                            closure != null,
+                            closure == null ? null : closure.getReason());
                 })
                 .toList();
     }

@@ -9,7 +9,7 @@ import com.univgo.backend.reservations.domain.InvalidReservationStateException;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
-import com.univgo.backend.reservations.domain.SpaceUnderMaintenanceException;
+import com.univgo.backend.reservations.domain.SpaceClosedException;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
         InvalidReservationStateException.class,
         ReservationOverlapException.class,
         CannotCancelInProgressReservationException.class,
-        SpaceUnderMaintenanceException.class,
+        SpaceClosedException.class,
         BlockCapacityFullException.class,
         BlockNoLongerBookableException.class,
         SpaceAlreadyReservedTodayException.class

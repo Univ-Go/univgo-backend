@@ -13,6 +13,10 @@ public record CheckInResult(
         LocalTime otherBlockStart,
         LocalTime otherBlockEnd) {
 
+    public static CheckInResult spaceClosed() {
+        return new CheckInResult(CheckInVerdict.SPACE_CLOSED, null, null, null, null, null, null, null);
+    }
+
     public static CheckInResult notExists() {
         return new CheckInResult(CheckInVerdict.NOT_EXISTS, null, null, null, null, null, null, null);
     }

@@ -8,10 +8,12 @@ import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
@@ -35,16 +37,19 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
-            InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
     }
 
     @Override
@@ -58,6 +63,10 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
                 .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
         BlockReservations reservations = BlockReservations.of(reservationRepositoryPort.findActiveByDate(date));
 
+        // One query for every space's closures, like the schedules and the reservations above: the
+        // catalog reads the whole campus, so asking space by space is where the seconds went.
+        SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
+
         return spaceRepositoryPort.findAll().stream()
                 .map(space -> new SpaceCatalogItem(
                         space.getId(),
@@ -65,10 +74,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
                         space.getLocation(),
                         space.getCategory(),
                         space.getCapacity(),
-                        space.isUnderMaintenance(),
-                        space.isUnderMaintenance()
-                                ? List.of()
-                                : freeBlockStarts(space, date, now, config, schedules, reservations)))
+                        closures.shutAt(space.getId(), now),
+                        freeBlockStarts(space, date, now, config, schedules, reservations, closures)))
                 .toList();
     }
 
@@ -83,12 +90,14 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
             LocalDateTime now,
             InstitutionConfig config,
             Map<UUID, List<SpaceSchedule>> schedules,
-            BlockReservations reservations) {
+            BlockReservations reservations,
+            SpaceClosures closures) {
         List<TimeBlock> blocks = BlockGenerator.generate(
                 schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
 
         return blocks.stream()
-                .filter(block -> hasRoom(space, date, block, now, config, reservations))
+                .filter(block -> !closures.shut(space.getId(), date, block.start(), block.end()))
+                .filter(block -> hasRoom(space, date, block, now, config, reservations, closures))
                 .map(TimeBlock::start)
                 .toList();
     }
@@ -99,12 +108,13 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
             TimeBlock block,
             LocalDateTime now,
             InstitutionConfig config,
-            BlockReservations reservations) {
+            BlockReservations reservations,
+            SpaceClosures closures) {
         if (!ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance())) {
             return false;
         }
-        long occupied = OccupancyCounter.countOccupiedPlazas(
-                reservations.of(space.getId(), block), now, config.tolerance(), config.minUsage());
+        long occupied =
+                OccupancyCounter.countOccupiedPlazas(reservations.of(space.getId(), block), closures, now, config);
         return occupied < space.getCapacity();
     }
 }

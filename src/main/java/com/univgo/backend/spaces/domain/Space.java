@@ -10,23 +10,19 @@ public class Space {
     private final int capacity;
     private final UUID spaceTypeId;
     private final SpaceCategory category;
-    private final boolean underMaintenance;
 
-    public Space(
-            UUID id,
-            String name,
-            String location,
-            int capacity,
-            UUID spaceTypeId,
-            SpaceCategory category,
-            boolean underMaintenance) {
+    /**
+     * Whether the space is open is not one of its properties: it is whether a closure covers the
+     * moment being asked about (spec §12), and that is a question about time. `SpaceClosures`
+     * answers it.
+     */
+    public Space(UUID id, String name, String location, int capacity, UUID spaceTypeId, SpaceCategory category) {
         this.id = id;
         this.name = name;
         this.location = location;
         this.capacity = capacity;
         this.spaceTypeId = spaceTypeId;
         this.category = category;
-        this.underMaintenance = underMaintenance;
     }
 
     public UUID getId() {
@@ -53,7 +49,4 @@ public class Space {
         return category;
     }
 
-    public boolean isUnderMaintenance() {
-        return underMaintenance;
-    }
 }

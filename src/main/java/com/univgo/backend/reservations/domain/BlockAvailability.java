@@ -17,6 +17,8 @@ public record BlockAvailability(
         boolean offered,
         boolean alreadyReservedByUserToday,
         boolean overlapsUserReservation,
+        /** The space is shut for this block, which is why it is not on offer (spec §12). */
+        boolean closed,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 }

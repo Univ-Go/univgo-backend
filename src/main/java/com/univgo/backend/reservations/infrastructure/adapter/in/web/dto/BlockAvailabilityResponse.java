@@ -13,6 +13,7 @@ public record BlockAvailabilityResponse(
         boolean offered,
         boolean alreadyReservedByUserToday,
         boolean overlapsUserReservation,
+        boolean closed,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 
@@ -26,6 +27,7 @@ public record BlockAvailabilityResponse(
                 availability.offered(),
                 availability.alreadyReservedByUserToday(),
                 availability.overlapsUserReservation(),
+                availability.closed(),
                 availability.previewCheckInOpensAt(),
                 availability.previewCheckInClosesAt());
     }

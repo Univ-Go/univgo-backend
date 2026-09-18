@@ -10,10 +10,13 @@ import com.univgo.backend.reservations.application.port.out.ReservationRepositor
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceCategory;
+import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +44,9 @@ class GetSpaceCatalogServiceTest {
     @Mock
     private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
 
+    @Mock
+    private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+
     @InjectMocks
     private GetSpaceCatalogService service;
 
@@ -52,7 +58,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void describesTheSpaceAndListsEveryBlockThatStillHasRoom() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, false)));
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
@@ -72,7 +78,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void leavesOutBlocksWhoseCapacityIsFull() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(1, false)));
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(1)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of(activeReservation()));
@@ -84,7 +90,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void offersNothingOnADayThatAlreadyPassed() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, false)));
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(PAST_DATE)).thenReturn(List.of());
@@ -95,11 +101,12 @@ class GetSpaceCatalogServiceTest {
     }
 
     @Test
-    void aSpaceUnderMaintenanceOffersNoBlocks() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30, true)));
+    void aSpaceClosedWithNoEndDateOffersNoBlocksAndSaysSo() {
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
+        when(spaceClosureRepositoryPort.findAllInForce()).thenReturn(List.of(indefiniteClosure()));
 
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
@@ -107,15 +114,45 @@ class GetSpaceCatalogServiceTest {
         assertThat(result.getFirst().freeBlockStarts()).isEmpty();
     }
 
-    private static Space space(int capacity, boolean underMaintenance) {
-        return new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Complejo Deportivo Central",
-                capacity,
+    @Test
+    void aClosureOfOneAfternoonOnlyTakesOutTheBlocksItCovers() {
+        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
+        when(spaceClosureRepositoryPort.findAllInForce())
+                .thenReturn(List.of(closure(
+                        LocalDateTime.of(FUTURE_DATE, LocalTime.of(14, 0)),
+                        LocalDateTime.of(FUTURE_DATE, LocalTime.of(16, 0)))));
+
+        List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
+
+        // The space is open right now — the closure is a week away — so only its blocks go.
+        assertThat(result.getFirst().underMaintenance()).isFalse();
+        assertThat(result.getFirst().freeBlockStarts()).containsExactly(LocalTime.of(16, 0));
+    }
+
+    private static SpaceClosure indefiniteClosure() {
+        return closure(LocalDateTime.now().minusHours(1), null);
+    }
+
+    private static SpaceClosure closure(LocalDateTime startsAt, LocalDateTime endsAt) {
+        return new SpaceClosure(
                 UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                underMaintenance);
+                SPACE_ID,
+                startsAt,
+                endsAt,
+                ClosureReason.MAINTENANCE,
+                null,
+                UUID.randomUUID(),
+                LocalDateTime.now(),
+                null,
+                null);
+    }
+
+    private static Space space(int capacity) {
+        return new Space(
+                SPACE_ID, "Gimnasio", "Complejo Deportivo Central", capacity, UUID.randomUUID(), SpaceCategory.SPORTS);
     }
 
     private static List<SpaceSchedule> openFrom(int startHour, int endHour) {

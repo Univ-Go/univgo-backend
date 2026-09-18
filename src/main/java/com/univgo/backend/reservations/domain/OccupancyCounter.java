@@ -1,6 +1,6 @@
 package com.univgo.backend.reservations.domain;
 
-import java.time.Duration;
+import com.univgo.backend.spaces.domain.SpaceClosures;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -15,11 +15,20 @@ public final class OccupancyCounter {
     private OccupancyCounter() {
     }
 
+    /**
+     * A suspended reservation still holds its plaza: that is what lets a reverted closure hand it
+     * back untouched. It costs nobody a seat, because a space that is shut offers no blocks.
+     */
     public static long countOccupiedPlazas(
-            List<Reservation> activeReservationsInBlock, LocalDateTime now, Duration tolerance, Duration minUsage) {
+            List<Reservation> activeReservationsInBlock,
+            SpaceClosures closures,
+            LocalDateTime now,
+            InstitutionConfig config) {
         return activeReservationsInBlock.stream()
-                .map(r -> r.stateAt(now, tolerance, minUsage))
-                .filter(state -> state == ReservationState.RESERVED || state == ReservationState.IN_PROGRESS)
+                .map(r -> ReservationStatusResolver.resolve(r, closures, now, config).state())
+                .filter(state -> state == ReservationState.RESERVED
+                        || state == ReservationState.IN_PROGRESS
+                        || state == ReservationState.SUSPENDED)
                 .count();
     }
 }

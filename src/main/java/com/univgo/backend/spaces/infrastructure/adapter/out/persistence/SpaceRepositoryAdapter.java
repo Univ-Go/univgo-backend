@@ -31,14 +31,6 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
         return spaceJpaRepository.findAll().stream().map(SpaceRepositoryAdapter::toDomain).toList();
     }
 
-    @Override
-    public void updateMaintenance(UUID id, boolean underMaintenance) {
-        spaceJpaRepository.findById(id).ifPresent(entity -> {
-            entity.setUnderMaintenance(underMaintenance);
-            spaceJpaRepository.save(entity);
-        });
-    }
-
     private static Space toDomain(SpaceJpaEntity entity) {
         return new Space(
                 entity.getId(),
@@ -46,7 +38,6 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
                 entity.getLocation(),
                 entity.getCapacity(),
                 entity.getSpaceTypeId(),
-                entity.getSpaceType().getCategory(),
-                entity.isUnderMaintenance());
+                entity.getSpaceType().getCategory());
     }
 }

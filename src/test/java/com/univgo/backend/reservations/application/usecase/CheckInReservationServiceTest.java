@@ -14,6 +14,7 @@ import com.univgo.backend.reservations.domain.CheckInResult;
 import com.univgo.backend.reservations.domain.CheckInVerdict;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
 import java.time.LocalDate;
@@ -39,6 +40,9 @@ class CheckInReservationServiceTest {
 
     @Mock
     private UserRepositoryPort userRepositoryPort;
+
+    @Mock
+    private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
     @InjectMocks
     private CheckInReservationService service;

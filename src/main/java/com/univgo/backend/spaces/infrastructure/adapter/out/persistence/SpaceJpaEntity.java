@@ -35,9 +35,6 @@ public class SpaceJpaEntity {
     @JoinColumn(name = "space_type_id", insertable = false, updatable = false)
     private SpaceTypeJpaEntity spaceType;
 
-    @Column(name = "under_maintenance", nullable = false)
-    private boolean underMaintenance;
-
     protected SpaceJpaEntity() {
     }
 
@@ -65,11 +62,4 @@ public class SpaceJpaEntity {
         return spaceType;
     }
 
-    public boolean isUnderMaintenance() {
-        return underMaintenance;
-    }
-
-    public void setUnderMaintenance(boolean underMaintenance) {
-        this.underMaintenance = underMaintenance;
-    }
 }

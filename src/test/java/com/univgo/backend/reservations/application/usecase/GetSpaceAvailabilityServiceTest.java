@@ -10,10 +10,13 @@ import com.univgo.backend.reservations.application.port.out.ReservationRepositor
 import com.univgo.backend.reservations.domain.BlockAvailability;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceCategory;
+import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -42,6 +45,9 @@ class GetSpaceAvailabilityServiceTest {
     @Mock
     private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
 
+    @Mock
+    private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+
     @InjectMocks
     private GetSpaceAvailabilityService service;
 
@@ -53,7 +59,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void reportsFreePlazasBasedOnCapacityMinusActiveReservations() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -74,7 +80,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenFull() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 1, UUID.randomUUID(), SpaceCategory.SPORTS, false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 1, UUID.randomUUID(), SpaceCategory.SPORTS);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -91,7 +97,7 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenAlreadyReservedTodayOrOverlapping() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, false);
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -110,13 +116,36 @@ class GetSpaceAvailabilityServiceTest {
     }
 
     @Test
-    void spaceUnderMaintenanceOffersNoBlocks() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, true);
+    void aClosedBlockIsShownAndRefused_ratherThanMissingFromTheGrid() {
+        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, FUTURE_DATE)).thenReturn(List.of());
+        when(reservationRepositoryPort.findActiveByUserAndDate(USER_ID, FUTURE_DATE)).thenReturn(List.of());
+        when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of(indefiniteClosure()));
 
-        List<BlockAvailability> result = service.execute(SPACE_ID, FUTURE_DATE, USER_ID);
+        BlockAvailability availability = service.execute(SPACE_ID, FUTURE_DATE, USER_ID).getFirst();
 
-        assertThat(result).isEmpty();
+        assertThat(availability.closed()).isTrue();
+        assertThat(availability.offered()).isFalse();
+        // A block that is merely absent reads as "the space closes at ten"; this one says why.
+        assertThat(availability.free()).isEqualTo(30);
+    }
+
+    private static SpaceClosure indefiniteClosure() {
+        return new SpaceClosure(
+                UUID.randomUUID(),
+                SPACE_ID,
+                LocalDateTime.now().minusHours(1),
+                null,
+                ClosureReason.TECHNICAL_INCIDENT,
+                null,
+                UUID.randomUUID(),
+                LocalDateTime.now(),
+                null,
+                null);
     }
 
     private static Reservation activeReservation() {
