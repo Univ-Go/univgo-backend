@@ -1,6 +1,7 @@
 package com.univgo.backend.reservations.application.usecase;
 
 import com.univgo.backend.reservations.application.port.in.GetSpaceCatalogUseCase;
+import com.univgo.backend.reservations.application.port.in.GetSpaceDetailUseCase;
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.BlockReservations;
@@ -15,6 +16,7 @@ import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPor
 import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosures;
+import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
@@ -30,9 +32,13 @@ import org.springframework.stereotype.Service;
  * The catalog reads the whole day in four queries and does the rest in memory. Asking block by
  * block, as it used to, meant one round trip per block per space — against a database that is not
  * on this machine, that is where the eight seconds went.
+ *
+ * <p>It answers for one space as well as for the campus: reading a single space asks exactly the
+ * same questions of exactly the same six collaborators, so a separate service would be this class
+ * again with one call swapped.
  */
 @Service
-public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
+public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceDetailUseCase {
 
     private final SpaceRepositoryPort spaceRepositoryPort;
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
@@ -77,6 +83,26 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
                 .toList();
     }
 
+    @Override
+    public SpaceCatalogItem execute(UUID spaceId, LocalDate date) {
+        Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
+
+        Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
+                .findByDayOfWeek(date.getDayOfWeek().getValue())
+                .stream()
+                .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
+
+        return toCatalogItem(
+                space,
+                date,
+                LocalDateTime.now(),
+                institutionConfigRepositoryPort.getCurrent(),
+                schedules,
+                BlockReservations.of(reservationRepositoryPort.findActiveByDate(date)),
+                SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce()),
+                spaceImageRepositoryPort.findAllImageUrls());
+    }
+
     private SpaceCatalogItem toCatalogItem(
             Space space,
             LocalDate date,
@@ -105,7 +131,9 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
                 opensOnDate,
                 closedOnDate,
                 freeBlockStarts(blocks, space, date, now, config, reservations, closures),
-                images.getOrDefault(space.getId(), List.of()));
+                images.getOrDefault(space.getId(), List.of()),
+                space.getDescription(),
+                space.getRules());
     }
 
     /**

@@ -59,7 +59,15 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void reportsFreePlazasBasedOnCapacityMinusActiveReservations() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
+        Space space = new Space(
+                SPACE_ID,
+                "Gimnasio",
+                "Bloque A",
+                30,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Sala de musculación y cardio",
+                List.of());
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -80,7 +88,15 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenFull() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 1, UUID.randomUUID(), SpaceCategory.SPORTS);
+        Space space = new Space(
+                SPACE_ID,
+                "Gimnasio",
+                "Bloque A",
+                1,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Sala de musculación y cardio",
+                List.of());
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -97,7 +113,15 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenAlreadyReservedTodayOrOverlapping() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
+        Space space = new Space(
+                SPACE_ID,
+                "Gimnasio",
+                "Bloque A",
+                30,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Sala de musculación y cardio",
+                List.of());
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -117,7 +141,15 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void aClosedBlockIsShownAndRefused_ratherThanMissingFromTheGrid() {
-        Space space = new Space(SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS);
+        Space space = new Space(
+                SPACE_ID,
+                "Gimnasio",
+                "Bloque A",
+                30,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Sala de musculación y cardio",
+                List.of());
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))

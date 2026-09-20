@@ -16,7 +16,9 @@ public record SpaceCatalogResponse(
         boolean opensOnDate,
         boolean closedOnDate,
         List<LocalTime> freeBlockStarts,
-        List<String> images) {
+        List<String> images,
+        String description,
+        List<String> rules) {
 
     public static SpaceCatalogResponse from(SpaceCatalogItem item) {
         return new SpaceCatalogResponse(
@@ -29,6 +31,8 @@ public record SpaceCatalogResponse(
                 item.opensOnDate(),
                 item.closedOnDate(),
                 item.freeBlockStarts(),
-                item.images());
+                item.images(),
+                item.description(),
+                item.rules());
     }
 }

@@ -7,6 +7,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "spaces")
@@ -26,6 +28,17 @@ public class SpaceJpaEntity {
 
     @Column(name = "space_type_id", nullable = false)
     private UUID spaceTypeId;
+
+    @Column(nullable = false, columnDefinition = "text")
+    private String description;
+
+    /**
+     * A Postgres {@code text[]}, not a join table: a rule has no identity of its own and is never
+     * queried by itself, so the column is the list and its order is the reading order.
+     */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(nullable = false, columnDefinition = "text[]")
+    private String[] rules;
 
     /**
      * Read-only view of the type row, for its category. The writable UUID column above stays the
@@ -56,6 +69,14 @@ public class SpaceJpaEntity {
 
     public UUID getSpaceTypeId() {
         return spaceTypeId;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String[] getRules() {
+        return rules.clone();
     }
 
     public SpaceTypeJpaEntity getSpaceType() {

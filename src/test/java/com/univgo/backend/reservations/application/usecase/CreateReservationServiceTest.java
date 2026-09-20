@@ -221,7 +221,15 @@ class CreateReservationServiceTest {
     }
 
     private static Space space(int capacity) {
-        return new Space(SPACE_ID, "Test space", "Bloque A", capacity, UUID.randomUUID(), SpaceCategory.SPORTS);
+        return new Space(
+                SPACE_ID,
+                "Test space",
+                "Bloque A",
+                capacity,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Un espacio de prueba",
+                List.of());
     }
 
     private static SpaceSchedule schedule(LocalTime start, LocalTime end) {

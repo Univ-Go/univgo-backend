@@ -1,6 +1,7 @@
 package com.univgo.backend.reservations.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
@@ -19,12 +20,14 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
+import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,6 +91,31 @@ class GetSpaceCatalogServiceTest {
         assertThat(item.opensOnDate()).isTrue();
         assertThat(item.closedOnDate()).isFalse();
         assertThat(item.freeBlockStarts()).containsExactly(LocalTime.of(14, 0), LocalTime.of(16, 0));
+        assertThat(item.description()).isEqualTo("Sala de musculación y cardio");
+        assertThat(item.rules()).containsExactly("Usa toalla sobre las máquinas");
+    }
+
+    @Test
+    void readsOneSpaceTheSameWayItReadsTheCatalog() {
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
+        when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
+
+        SpaceCatalogItem item = service.execute(SPACE_ID, FUTURE_DATE);
+
+        assertThat(item.spaceId()).isEqualTo(SPACE_ID);
+        assertThat(item.description()).isEqualTo("Sala de musculación y cardio");
+        assertThat(item.rules()).containsExactly("Usa toalla sobre las máquinas");
+        assertThat(item.freeBlockStarts()).containsExactly(LocalTime.of(14, 0), LocalTime.of(16, 0));
+    }
+
+    @Test
+    void refusesToDescribeASpaceThatIsNotThere() {
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.execute(SPACE_ID, FUTURE_DATE))
+                .isInstanceOf(SpaceNotFoundException.class);
     }
 
     @Test
@@ -196,7 +224,14 @@ class GetSpaceCatalogServiceTest {
 
     private static Space space(int capacity) {
         return new Space(
-                SPACE_ID, "Gimnasio", "Complejo Deportivo Central", capacity, UUID.randomUUID(), SpaceCategory.SPORTS);
+                SPACE_ID,
+                "Gimnasio",
+                "Complejo Deportivo Central",
+                capacity,
+                UUID.randomUUID(),
+                SpaceCategory.SPORTS,
+                "Sala de musculación y cardio",
+                List.of("Usa toalla sobre las máquinas"));
     }
 
     private static List<SpaceSchedule> openFrom(int startHour, int endHour) {
