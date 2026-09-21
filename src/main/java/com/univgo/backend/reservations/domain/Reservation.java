@@ -67,8 +67,16 @@ public class Reservation {
         if (current != ReservationState.RESERVED) {
             throw new InvalidReservationStateException(current);
         }
+        if (actor == CancelledBy.STUDENT && now.isAfter(cancellationDeadline())) {
+            throw new CancellationWindowClosedException(id, blockStartDateTime());
+        }
         this.cancelledAt = now;
         this.cancelledBy = actor;
+    }
+
+    /** Last instant a student may cancel: block start minus one hour. */
+    public LocalDateTime cancellationDeadline() {
+        return ReservationTimingCalculator.cancellationDeadline(blockStartDateTime());
     }
 
     public void checkIn(LocalDateTime now) {

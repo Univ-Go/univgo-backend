@@ -4,6 +4,7 @@ import com.univgo.backend.auth.domain.InvalidCredentialsException;
 import com.univgo.backend.auth.domain.InvalidRefreshTokenException;
 import com.univgo.backend.reservations.domain.BlockCapacityFullException;
 import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
+import com.univgo.backend.reservations.domain.CancellationWindowClosedException;
 import com.univgo.backend.reservations.domain.CannotCancelInProgressReservationException;
 import com.univgo.backend.reservations.domain.InvalidReservationStateException;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
@@ -41,6 +42,7 @@ public class GlobalExceptionHandler {
         InvalidReservationStateException.class,
         ReservationOverlapException.class,
         CannotCancelInProgressReservationException.class,
+        CancellationWindowClosedException.class,
         SpaceUnderMaintenanceException.class,
         BlockCapacityFullException.class,
         BlockNoLongerBookableException.class,
