@@ -25,6 +25,8 @@ public interface ReservationRepositoryPort {
 
     List<Reservation> findActiveByBlock(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime);
 
+    void lockBlockForBooking(UUID spaceId, LocalDate date, LocalTime startTime);
+
     /**
      * Every active reservation of a day, across spaces. Reading a whole day at once is what keeps the
      * catalog to a handful of round trips: asking block by block cost one query per block per space.
