@@ -29,6 +29,10 @@ public class SecurityConfig {
             "/auth/refresh",
             "/auth/logout",
             "/ping",
+            // Boot's own error controller: an unhandled exception on an authenticated endpoint
+            // forwards here internally, and without this the entry point overwrites the real
+            // status/message with a misleading 401 before it ever reaches the client.
+            "/error",
             "/swagger-ui/**",
             "/swagger-dark.css",
             "/v3/api-docs/**"
