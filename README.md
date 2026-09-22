@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://drive.google.com/uc?export=download&id=1G5DRy_K0lIGtc7k4Qthxg0D5LtSwoLsR" alt="UnivGoLogo" width="300"/>
+  <img width="1867" height="564" alt="image" src="https://github.com/user-attachments/assets/8c0c3457-e246-4f02-994b-0182deda2473" />
 </p>
 
 # UnivGo — API

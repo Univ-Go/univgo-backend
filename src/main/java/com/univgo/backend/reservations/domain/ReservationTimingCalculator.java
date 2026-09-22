@@ -13,7 +13,15 @@ import java.time.LocalTime;
  */
 public final class ReservationTimingCalculator {
 
+    /** A student may only cancel up to one hour before the block starts. */
+    public static final Duration CANCELLATION_WINDOW = Duration.ofHours(1);
+
     private ReservationTimingCalculator() {
+    }
+
+    /** Último instante en que un estudiante puede cancelar: inicio del bloque - 1 hora. */
+    public static LocalDateTime cancellationDeadline(LocalDateTime blockStart) {
+        return blockStart.minus(CANCELLATION_WINDOW);
     }
 
     /** Último instante en que un bloque se puede reservar: fin - uso_mínimo - tolerancia. */

@@ -68,6 +68,12 @@ class ReservationTimingCalculatorTest {
     }
 
     @Test
+    void cancellationDeadlineForTheTwoOClockBlockIsOneOClock() {
+        assertThat(ReservationTimingCalculator.cancellationDeadline(BLOCK_START))
+                .isEqualTo(LocalDateTime.of(DATE, LocalTime.of(13, 0)));
+    }
+
+    @Test
     void earlyReservationTimelineMatchesSpecMilestones() {
         LocalDateTime createdYesterday = LocalDateTime.of(DATE.minusDays(1), LocalTime.of(9, 0));
 

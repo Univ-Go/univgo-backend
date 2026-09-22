@@ -28,13 +28,33 @@ class ReservationTest {
     }
 
     @Test
-    void cancellingAfterTheBlockStartedButBeforeCheckInClosesSucceeds() {
+    void cancellingWithinOneHourOfBlockStartIsRejectedForStudents() {
+        Reservation reservation = reservedYesterday();
+
+        // Block starts 14:00; cancellation window for a student closes at 13:00.
+        assertThatThrownBy(() ->
+                        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(13, 30)), TOLERANCE, MIN_USAGE))
+                .isInstanceOf(CancellationWindowClosedException.class);
+    }
+
+    @Test
+    void cancellingExactlyOneHourBeforeBlockStartSucceeds() {
+        Reservation reservation = reservedYesterday();
+
+        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(13, 0)), TOLERANCE, MIN_USAGE);
+
+        assertThat(reservation.getCancelledAt()).isNotNull();
+    }
+
+    @Test
+    void adminCanCancelWithinOneHourOfBlockStart() {
         Reservation reservation = reservedYesterday();
 
         // Block starts 14:00, check-in for an early reservation closes 14:15.
-        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(14, 10)), TOLERANCE, MIN_USAGE);
+        reservation.cancel(CancelledBy.ADMIN, LocalDateTime.of(DATE, LocalTime.of(13, 30)), TOLERANCE, MIN_USAGE);
 
         assertThat(reservation.getCancelledAt()).isNotNull();
+        assertThat(reservation.getCancelledBy()).isEqualTo(CancelledBy.ADMIN);
     }
 
     @Test

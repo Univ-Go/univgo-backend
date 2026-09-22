@@ -28,7 +28,9 @@ public record ReservationResponse(
         CancelledBy cancelledBy,
         ClosureReason closureReason,
         LocalDateTime checkInOpensAt,
-        LocalDateTime checkInClosesAt) {
+        LocalDateTime checkInClosesAt,
+        LocalDateTime cancellationDeadline,
+        boolean cancellable) {
 
     // Computed fresh on every read from the current "now" — never cached, per the
     // spec's "la autoridad es el servidor".
@@ -41,6 +43,7 @@ public record ReservationResponse(
             Reservation reservation, InstitutionConfig config, SpaceClosures closures) {
         LocalDateTime now = LocalDateTime.now();
         ReservationStatus status = ReservationStatusResolver.resolve(reservation, closures, now, config);
+        LocalDateTime cancellationDeadline = reservation.cancellationDeadline();
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getQrCodeData(),
@@ -56,6 +59,8 @@ public record ReservationResponse(
                 status.cancelledBy(),
                 status.closureReason(),
                 reservation.checkInOpensAt(config.tolerance()),
-                reservation.checkInClosesAt(config.tolerance(), config.minUsage()));
+                reservation.checkInClosesAt(config.tolerance(), config.minUsage()),
+                cancellationDeadline,
+                status.state() == ReservationState.RESERVED && !now.isAfter(cancellationDeadline));
     }
 }
