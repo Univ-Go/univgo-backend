@@ -57,6 +57,7 @@ public class JwtTokenProvider implements TokenProviderPort {
         Date expiresAt = new Date(now.getTime() + refreshExpirationMillis);
 
         String token = Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(user.getId().toString())
                 .claim(CLAIM_TYPE, TYPE_REFRESH)
                 .issuedAt(now)
