@@ -57,6 +57,7 @@ public class RefreshTokenService implements RefreshTokenUseCase {
         refreshTokenRepositoryPort.save(next);
         refreshTokenRepositoryPort.save(stored);
 
-        return new RefreshResult(accessToken, issuedRefreshToken.token(), tokenProviderPort.getAccessExpirationSeconds());
+        return new RefreshResult(
+                accessToken, issuedRefreshToken.token(), tokenProviderPort.getAccessExpirationSeconds(), user);
     }
 }

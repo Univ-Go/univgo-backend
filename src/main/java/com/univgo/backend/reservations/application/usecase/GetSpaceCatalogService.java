@@ -1,70 +1,174 @@
 package com.univgo.backend.reservations.application.usecase;
 
 import com.univgo.backend.reservations.application.port.in.GetSpaceCatalogUseCase;
+import com.univgo.backend.reservations.application.port.in.GetSpaceDetailUseCase;
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
+import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
-import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceClosures;
+import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
+/**
+ * The catalog reads the whole day in four queries and does the rest in memory. Asking block by
+ * block, as it used to, meant one round trip per block per space — against a database that is not
+ * on this machine, that is where the eight seconds went.
+ *
+ * <p>It answers for one space as well as for the campus: reading a single space asks exactly the
+ * same questions of exactly the same six collaborators, so a separate service would be this class
+ * again with one call swapped.
+ */
 @Service
-public class GetSpaceCatalogService implements GetSpaceCatalogUseCase {
+public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceDetailUseCase {
 
     private final SpaceRepositoryPort spaceRepositoryPort;
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final SpaceImageRepositoryPort spaceImageRepositoryPort;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
-            InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            SpaceImageRepositoryPort spaceImageRepositoryPort) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.spaceImageRepositoryPort = spaceImageRepositoryPort;
     }
 
     @Override
-    public List<SpaceCatalogItem> execute() {
+    public List<SpaceCatalogItem> execute(LocalDate date) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
+        Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
+                .findByDayOfWeek(date.getDayOfWeek().getValue())
+                .stream()
+                .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
+        BlockReservations reservations = BlockReservations.of(reservationRepositoryPort.findActiveByDate(date));
+
+        // One query for every space's closures, like the schedules and the reservations above: the
+        // catalog reads the whole campus, so asking space by space is where the seconds went.
+        SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
+        Map<UUID, List<String>> images = spaceImageRepositoryPort.findAllImageUrls();
+
         return spaceRepositoryPort.findAll().stream()
-                .map(space -> new SpaceCatalogItem(
-                        space.getId(),
-                        space.getName(),
-                        space.getCapacity(),
-                        space.isUnderMaintenance(),
-                        !space.isUnderMaintenance() && hasFreeBlockToday(space, today, now, config)))
+                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures, images))
                 .toList();
     }
 
-    private boolean hasFreeBlockToday(Space space, LocalDate today, LocalDateTime now, InstitutionConfig config) {
-        int dayOfWeek = today.getDayOfWeek().getValue();
-        List<TimeBlock> blocks = BlockGenerator.generate(
-                spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(space.getId(), dayOfWeek), config.blockDuration());
+    @Override
+    public SpaceCatalogItem execute(UUID spaceId, LocalDate date) {
+        Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
 
-        return blocks.stream().anyMatch(block -> {
-            if (!ReservationTimingCalculator.isBlockStillBookable(today, block.end(), now, config.minUsage(), config.tolerance())) {
-                return false;
-            }
-            List<Reservation> active = reservationRepositoryPort.findActiveByBlock(space.getId(), today, block.start(), block.end());
-            long occupied = OccupancyCounter.countOccupiedPlazas(active, now, config.tolerance(), config.minUsage());
-            return occupied < space.getCapacity();
-        });
+        Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
+                .findByDayOfWeek(date.getDayOfWeek().getValue())
+                .stream()
+                .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
+
+        return toCatalogItem(
+                space,
+                date,
+                LocalDateTime.now(),
+                institutionConfigRepositoryPort.getCurrent(),
+                schedules,
+                BlockReservations.of(reservationRepositoryPort.findActiveByDate(date)),
+                SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce()),
+                spaceImageRepositoryPort.findAllImageUrls());
+    }
+
+    private SpaceCatalogItem toCatalogItem(
+            Space space,
+            LocalDate date,
+            LocalDateTime now,
+            InstitutionConfig config,
+            Map<UUID, List<SpaceSchedule>> schedules,
+            BlockReservations reservations,
+            SpaceClosures closures,
+            Map<UUID, List<String>> images) {
+        List<TimeBlock> blocks = BlockGenerator.generate(
+                schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
+
+        // Three different silences, told apart here because the catalog is where somebody decides
+        // whether to walk over: a space with no hours that day, one that is shut, and a full one.
+        boolean opensOnDate = !blocks.isEmpty();
+        boolean closedOnDate = opensOnDate
+                && blocks.stream().allMatch(block -> closures.shut(space.getId(), date, block.start(), block.end()));
+
+        return new SpaceCatalogItem(
+                space.getId(),
+                space.getName(),
+                space.getLocation(),
+                space.getCategory(),
+                space.getCapacity(),
+                closures.shutAt(space.getId(), now),
+                opensOnDate,
+                closedOnDate,
+                freeBlockStarts(blocks, space, date, now, config, reservations, closures),
+                images.getOrDefault(space.getId(), List.of()),
+                space.getDescription(),
+                space.getRules());
+    }
+
+    /**
+     * The catalog reads plazas but not the student: whether they already booked here today or clash
+     * with another reservation is answered by the availability of a single space, where there is
+     * room to explain it. Listing it here would hide the space instead.
+     */
+    private List<LocalTime> freeBlockStarts(
+            List<TimeBlock> blocks,
+            Space space,
+            LocalDate date,
+            LocalDateTime now,
+            InstitutionConfig config,
+            BlockReservations reservations,
+            SpaceClosures closures) {
+        return blocks.stream()
+                .filter(block -> !closures.shut(space.getId(), date, block.start(), block.end()))
+                .filter(block -> hasRoom(space, date, block, now, config, reservations, closures))
+                .map(TimeBlock::start)
+                .toList();
+    }
+
+    private boolean hasRoom(
+            Space space,
+            LocalDate date,
+            TimeBlock block,
+            LocalDateTime now,
+            InstitutionConfig config,
+            BlockReservations reservations,
+            SpaceClosures closures) {
+        if (!ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance())) {
+            return false;
+        }
+        long occupied =
+                OccupancyCounter.countOccupiedPlazas(reservations.of(space.getId(), block), closures, now, config);
+        return occupied < space.getCapacity();
     }
 }

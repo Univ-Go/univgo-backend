@@ -12,6 +12,4 @@ public interface SpaceRepositoryPort {
     Optional<Space> findById(UUID id);
 
     List<Space> findAll();
-
-    Space save(Space space);
 }

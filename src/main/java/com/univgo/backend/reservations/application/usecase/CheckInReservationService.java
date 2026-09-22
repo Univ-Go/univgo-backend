@@ -7,6 +7,8 @@ import com.univgo.backend.reservations.domain.CheckInResult;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationState;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -18,14 +20,17 @@ public class CheckInReservationService implements CheckInReservationUseCase {
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
+    private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
     public CheckInReservationService(
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            UserRepositoryPort userRepositoryPort) {
+            UserRepositoryPort userRepositoryPort,
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
+        this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
     }
 
     @Override
@@ -40,6 +45,10 @@ public class CheckInReservationService implements CheckInReservationUseCase {
             return CheckInResult.notExists();
         }
 
+        if (!reservation.getSpaceId().equals(command.spaceId())) {
+            return CheckInResult.otherBlock(reservation.getBlockStart(), reservation.getBlockEnd());
+        }
+
         if (command.expectedBlockStart() != null
                 && command.expectedBlockEnd() != null
                 && (!reservation.getBlockStart().equals(command.expectedBlockStart())
@@ -49,12 +58,28 @@ public class CheckInReservationService implements CheckInReservationUseCase {
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
         LocalDateTime now = LocalDateTime.now();
+
+        // A closed door lets nobody in, and it is not the student's fault either: the reservation is
+        // suspended, not expired, and it comes back if the closure is reverted (spec §12).
+        SpaceClosures closures =
+                SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(reservation.getSpaceId()));
+        if (closures.shut(
+                reservation.getSpaceId(),
+                reservation.getReservationDate(),
+                reservation.getBlockStart(),
+                reservation.getBlockEnd())) {
+            return CheckInResult.spaceClosed();
+        }
+
         ReservationState state = reservation.stateAt(now, config.tolerance(), config.minUsage());
 
         return switch (state) {
             case IN_PROGRESS, FINISHED -> CheckInResult.alreadyUsed(studentName(reservation), reservation.getCheckedInAt());
             case EXPIRED -> CheckInResult.expiredAlready(reservation.checkInClosesAt(config.tolerance(), config.minUsage()));
             case CANCELLED -> CheckInResult.notExists();
+            // Unreachable: the closure check above already answered, and it is the only thing that
+            // suspends. Stated rather than defaulted, so a seventh state cannot slip through here.
+            case SUSPENDED -> CheckInResult.spaceClosed();
             case RESERVED -> checkInIfWindowIsOpen(reservation, now, config);
         };
     }

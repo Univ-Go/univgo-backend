@@ -15,9 +15,34 @@ spring:
     baseline-on-migrate: true
 
 server:
-  port: 3000
+  port: ${PORT:3000}
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 3600000
-  refresh-expiration: 604800000
+  # 15 minutes. Short on purpose: the session cookie is renewed silently from the refresh cookie,
+  # so the cost of a narrow window is paid by the browser, not by the person using the app.
+  expiration: 900000
+  # 30 minutes, sliding: every refresh rotates the token and restarts the window, so an active
+  # session never expires while half an hour of inactivity ends it.
+  refresh-expiration: 1800000
+
+auth:
+  cookie:
+    session-name: univgo_session
+    refresh-name: univgo_refresh
+    # Overridden per environment: production serves the API on another domain over TLS and needs
+    # `secure: true` with `same-site: None`.
+    secure: false
+    same-site: Lax
+    domain:
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4200}
+
+aws:
+  s3:
+    endpoint: ${AWS_ENDPOINT_URL_S3}
+    region: ${AWS_REGION}
+    access-key-id: ${AWS_ACCESS_KEY_ID}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+    bucket: ${AWS_S3_BUCKET}

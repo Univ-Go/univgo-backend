@@ -7,6 +7,9 @@ package com.univgo.backend.reservations.domain;
  */
 public enum ReservationState {
     RESERVED,
+    /** Its block falls inside a closure of the space: it holds its place, and comes back if the
+     *  closure is reverted. Never stored — {@link ReservationStatusResolver} derives it. */
+    SUSPENDED,
     IN_PROGRESS,
     FINISHED,
     EXPIRED,

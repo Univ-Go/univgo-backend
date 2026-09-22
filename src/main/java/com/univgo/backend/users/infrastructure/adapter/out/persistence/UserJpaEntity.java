@@ -22,6 +22,10 @@ public class UserJpaEntity {
     @Column(nullable = false, unique = true)
     private String identification;
 
+    // Uniqueness is enforced by a case-insensitive functional index (V10), which JPA cannot express.
+    @Column(nullable = false)
+    private String email;
+
     @Column(name = "first_name", nullable = false)
     private String firstName;
 
@@ -30,6 +34,8 @@ public class UserJpaEntity {
 
     @Column(nullable = false)
     private String password;
+
+    private String school;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -41,9 +47,11 @@ public class UserJpaEntity {
     protected UserJpaEntity() {
     }
 
-    public UserJpaEntity(UUID id, String identification, String firstName, String lastName, String password) {
+    public UserJpaEntity(
+            UUID id, String identification, String email, String firstName, String lastName, String password) {
         this.id = id;
         this.identification = identification;
+        this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.password = password;
@@ -62,6 +70,10 @@ public class UserJpaEntity {
         return identification;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
     public String getFirstName() {
         return firstName;
     }
@@ -72,6 +84,10 @@ public class UserJpaEntity {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getSchool() {
+        return school;
     }
 
     public Set<RoleJpaEntity> getRoles() {

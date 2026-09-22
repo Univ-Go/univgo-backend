@@ -2,6 +2,7 @@ package com.univgo.backend.spaces.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,15 +32,15 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
         return spaceJpaRepository.findAll().stream().map(SpaceRepositoryAdapter::toDomain).toList();
     }
 
-    @Override
-    public Space save(Space space) {
-        var entity = new SpaceJpaEntity(
-                space.getId(), space.getName(), space.getCapacity(), space.getSpaceTypeId(), space.isUnderMaintenance());
-        return toDomain(spaceJpaRepository.save(entity));
-    }
-
     private static Space toDomain(SpaceJpaEntity entity) {
         return new Space(
-                entity.getId(), entity.getName(), entity.getCapacity(), entity.getSpaceTypeId(), entity.isUnderMaintenance());
+                entity.getId(),
+                entity.getName(),
+                entity.getLocation(),
+                entity.getCapacity(),
+                entity.getSpaceTypeId(),
+                entity.getSpaceType().getCategory(),
+                entity.getDescription(),
+                Arrays.asList(entity.getRules()));
     }
 }

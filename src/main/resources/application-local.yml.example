@@ -6,3 +6,11 @@ spring:
 
 jwt:
   secret: <random-256-bit-secret>
+
+aws:
+  s3:
+    endpoint: https://<endpoint>.storage.c-5.us-east-2.aws.neon.tech
+    region: us-east-2
+    access-key-id: <access-key-id>
+    secret-access-key: <secret-access-key>
+    bucket: <bucket-name>

@@ -11,7 +11,8 @@ public interface UserRepositoryPort {
 
     Optional<User> findById(UUID id);
 
-    Optional<User> findByIdentification(String identification);
+    /** Resolves a sign-in identifier, which may be the ID number or the institutional email. */
+    Optional<User> findByLoginIdentifier(String identifier);
 
     User save(User user);
 

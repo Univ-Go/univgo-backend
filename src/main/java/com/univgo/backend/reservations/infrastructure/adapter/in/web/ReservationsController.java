@@ -10,6 +10,8 @@ import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.CreateReservationRequest;
+import com.univgo.backend.spaces.application.port.in.GetSpaceClosuresUseCase;
+import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.ReservationResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -34,18 +36,21 @@ public class ReservationsController {
     private final GetReservationByIdUseCase getReservationByIdUseCase;
     private final CancelReservationUseCase cancelReservationUseCase;
     private final GetInstitutionConfigUseCase getInstitutionConfigUseCase;
+    private final GetSpaceClosuresUseCase getSpaceClosuresUseCase;
 
     public ReservationsController(
             CreateReservationUseCase createReservationUseCase,
             GetReservationsByUserUseCase getReservationsByUserUseCase,
             GetReservationByIdUseCase getReservationByIdUseCase,
             CancelReservationUseCase cancelReservationUseCase,
-            GetInstitutionConfigUseCase getInstitutionConfigUseCase) {
+            GetInstitutionConfigUseCase getInstitutionConfigUseCase,
+            GetSpaceClosuresUseCase getSpaceClosuresUseCase) {
         this.createReservationUseCase = createReservationUseCase;
         this.getReservationsByUserUseCase = getReservationsByUserUseCase;
         this.getReservationByIdUseCase = getReservationByIdUseCase;
         this.cancelReservationUseCase = cancelReservationUseCase;
         this.getInstitutionConfigUseCase = getInstitutionConfigUseCase;
+        this.getSpaceClosuresUseCase = getSpaceClosuresUseCase;
     }
 
     @PostMapping
@@ -55,11 +60,13 @@ public class ReservationsController {
         return toResponse(createReservationUseCase.execute(command));
     }
 
+    /** One read of the closures for the whole list: a student's reservations span several spaces. */
     @GetMapping("/me")
     public List<ReservationResponse> findMine(Authentication authentication) {
         InstitutionConfig config = getInstitutionConfigUseCase.execute();
+        SpaceClosures closures = SpaceClosures.of(getSpaceClosuresUseCase.inForce());
         return getReservationsByUserUseCase.execute(currentUserId(authentication)).stream()
-                .map(reservation -> ReservationResponse.from(reservation, config))
+                .map(reservation -> ReservationResponse.from(reservation, config, closures))
                 .toList();
     }
 
@@ -80,7 +87,10 @@ public class ReservationsController {
     }
 
     private ReservationResponse toResponse(Reservation reservation) {
-        return ReservationResponse.from(reservation, getInstitutionConfigUseCase.execute());
+        return ReservationResponse.from(
+                reservation,
+                getInstitutionConfigUseCase.execute(),
+                SpaceClosures.of(getSpaceClosuresUseCase.inForce()));
     }
 
     private boolean isAdmin(Authentication authentication) {

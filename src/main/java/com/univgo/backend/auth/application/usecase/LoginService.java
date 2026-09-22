@@ -32,7 +32,7 @@ public class LoginService implements LoginUseCase {
 
     @Override
     public LoginResult execute(LoginCommand command) {
-        User user = userRepositoryPort.findByIdentification(command.identification())
+        User user = userRepositoryPort.findByLoginIdentifier(command.identifier())
                 .orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordEncoder.matches(command.password(), user.getPassword())) {
@@ -45,6 +45,7 @@ public class LoginService implements LoginUseCase {
         refreshTokenRepositoryPort.save(RefreshToken.issue(
                 user.getId(), TokenHasher.sha256(issuedRefreshToken.token()), issuedRefreshToken.expiresAt()));
 
-        return new LoginResult(accessToken, issuedRefreshToken.token(), tokenProviderPort.getAccessExpirationSeconds());
+        return new LoginResult(
+                accessToken, issuedRefreshToken.token(), tokenProviderPort.getAccessExpirationSeconds(), user);
     }
 }

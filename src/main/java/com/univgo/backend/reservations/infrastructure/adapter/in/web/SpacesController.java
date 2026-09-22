@@ -2,6 +2,7 @@ package com.univgo.backend.reservations.infrastructure.adapter.in.web;
 
 import com.univgo.backend.reservations.application.port.in.GetSpaceAvailabilityUseCase;
 import com.univgo.backend.reservations.application.port.in.GetSpaceCatalogUseCase;
+import com.univgo.backend.reservations.application.port.in.GetSpaceDetailUseCase;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.BlockAvailabilityResponse;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.SpaceCatalogResponse;
 import java.time.LocalDate;
@@ -21,15 +22,32 @@ public class SpacesController {
 
     private final GetSpaceCatalogUseCase getSpaceCatalogUseCase;
     private final GetSpaceAvailabilityUseCase getSpaceAvailabilityUseCase;
+    private final GetSpaceDetailUseCase getSpaceDetailUseCase;
 
-    public SpacesController(GetSpaceCatalogUseCase getSpaceCatalogUseCase, GetSpaceAvailabilityUseCase getSpaceAvailabilityUseCase) {
+    public SpacesController(
+            GetSpaceCatalogUseCase getSpaceCatalogUseCase,
+            GetSpaceAvailabilityUseCase getSpaceAvailabilityUseCase,
+            GetSpaceDetailUseCase getSpaceDetailUseCase) {
         this.getSpaceCatalogUseCase = getSpaceCatalogUseCase;
         this.getSpaceAvailabilityUseCase = getSpaceAvailabilityUseCase;
+        this.getSpaceDetailUseCase = getSpaceDetailUseCase;
     }
 
+    /** The day defaults to today: browsing the catalog without asking for a date means "now". */
     @GetMapping
-    public List<SpaceCatalogResponse> catalog() {
-        return getSpaceCatalogUseCase.execute().stream().map(SpaceCatalogResponse::from).toList();
+    public List<SpaceCatalogResponse> catalog(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate requested = date != null ? date : LocalDate.now();
+        return getSpaceCatalogUseCase.execute(requested).stream().map(SpaceCatalogResponse::from).toList();
+    }
+
+    /** The day defaults to today for the same reason the catalog's does: no date asked means "now". */
+    @GetMapping("/{id}")
+    public SpaceCatalogResponse detail(
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        LocalDate requested = date != null ? date : LocalDate.now();
+        return SpaceCatalogResponse.from(getSpaceDetailUseCase.execute(id, requested));
     }
 
     @GetMapping("/{id}/availability")

@@ -4,12 +4,14 @@ import com.univgo.backend.users.domain.User;
 import java.util.Set;
 import java.util.UUID;
 
-public record UserResponse(UUID id, String identification, String firstName, String lastName, Set<String> roles) {
+public record UserResponse(
+        UUID id, String identification, String email, String firstName, String lastName, Set<String> roles) {
 
     public static UserResponse from(User user) {
         return new UserResponse(
                 user.getId(),
                 user.getIdentification(),
+                user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getRoles());

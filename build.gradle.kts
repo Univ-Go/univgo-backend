@@ -55,6 +55,10 @@ dependencies {
     // --- Documentación API ---
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 
+    // --- Almacenamiento de imágenes (S3-compatible, bucket en Neon) ---
+    implementation(platform("software.amazon.awssdk:bom:2.55.0"))
+    implementation("software.amazon.awssdk:s3")
+
     // --- Config ---
     developmentOnly("org.springframework.boot:spring-boot-devtools")
 
