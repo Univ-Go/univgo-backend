@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosures;
+import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -125,12 +126,8 @@ class ReservationStatusResolverTest {
                 UUID.randomUUID().toString(),
                 USER_ID,
                 SPACE_ID,
-                DAY,
-                BLOCK_START,
-                BLOCK_END,
+                new ReservationSchedule(DAY, new TimeBlock(BLOCK_START, BLOCK_END)),
                 LocalDateTime.of(DAY.minusDays(1), LocalTime.of(10, 0)),
-                checkedInAt,
-                cancelledAt,
-                actor);
+                new ReservationCheckpoint(checkedInAt, cancelledAt, actor));
     }
 }

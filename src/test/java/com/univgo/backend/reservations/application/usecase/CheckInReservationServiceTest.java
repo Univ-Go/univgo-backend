@@ -14,9 +14,13 @@ import com.univgo.backend.reservations.domain.CheckInResult;
 import com.univgo.backend.reservations.domain.CheckInVerdict;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.domain.TimeBlock;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -27,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +48,9 @@ class CheckInReservationServiceTest {
 
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+
+    @Spy
+    private Clock clock = Clock.systemDefaultZone();
 
     @InjectMocks
     private CheckInReservationService service;
@@ -159,7 +167,13 @@ class CheckInReservationServiceTest {
 
     private static Reservation reservationOn(LocalDate date, LocalTime start, LocalTime end, LocalDateTime createdAt) {
         return new Reservation(
-                UUID.randomUUID(), CODE, UUID.randomUUID(), SPACE_ID, date, start, end, createdAt, null, null, null);
+                UUID.randomUUID(),
+                CODE,
+                UUID.randomUUID(),
+                SPACE_ID,
+                new ReservationSchedule(date, new TimeBlock(start, end)),
+                createdAt,
+                ReservationCheckpoint.initial());
     }
 
     private static User student() {

@@ -1,6 +1,9 @@
 package com.univgo.backend.reservations.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
+import com.univgo.backend.spaces.domain.TimeBlock;
 
 final class ReservationPersistenceMapper {
 
@@ -13,13 +16,10 @@ final class ReservationPersistenceMapper {
                 entity.getQrCodeData(),
                 entity.getUserId(),
                 entity.getSpaceId(),
-                entity.getReservationDate(),
-                entity.getStartTime(),
-                entity.getEndTime(),
+                new ReservationSchedule(
+                        entity.getReservationDate(), new TimeBlock(entity.getStartTime(), entity.getEndTime())),
                 entity.getCreatedAt(),
-                entity.getCheckedInAt(),
-                entity.getCancelledAt(),
-                entity.getCancelledBy());
+                new ReservationCheckpoint(entity.getCheckedInAt(), entity.getCancelledAt(), entity.getCancelledBy()));
     }
 
     static ReservationJpaEntity toEntity(Reservation reservation) {
@@ -28,12 +28,10 @@ final class ReservationPersistenceMapper {
                 reservation.getQrCodeData(),
                 reservation.getUserId(),
                 reservation.getSpaceId(),
-                reservation.getReservationDate(),
-                reservation.getBlockStart(),
-                reservation.getBlockEnd(),
+                new ReservationScheduleEmbeddable(
+                        reservation.getReservationDate(), reservation.getBlockStart(), reservation.getBlockEnd()),
                 reservation.getCreatedAt(),
-                reservation.getCheckedInAt(),
-                reservation.getCancelledAt(),
-                reservation.getCancelledBy());
+                new ReservationCheckpointEmbeddable(
+                        reservation.getCheckedInAt(), reservation.getCancelledAt(), reservation.getCancelledBy()));
     }
 }

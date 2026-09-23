@@ -13,7 +13,9 @@ import com.univgo.backend.reservations.domain.BlockCapacityFullException;
 import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
@@ -25,6 +27,8 @@ import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -36,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,6 +60,9 @@ class CreateReservationServiceTest {
 
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+
+    @Spy
+    private Clock clock = Clock.systemDefaultZone();
 
     @InjectMocks
     private CreateReservationService service;
@@ -113,13 +121,9 @@ class CreateReservationServiceTest {
                 UUID.randomUUID().toString(),
                 USER_ID,
                 SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(8, 0),
-                LocalTime.of(10, 0),
+                new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
                 LocalDateTime.now(),
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
     }
 
     /** {@code endsAt} null is the switch's own closure: shut until somebody reverts it. */
@@ -242,12 +246,8 @@ class CreateReservationServiceTest {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(),
                 SPACE_ID,
-                FUTURE_DATE,
-                BLOCK_START,
-                BLOCK_END,
+                new ReservationSchedule(FUTURE_DATE, new TimeBlock(BLOCK_START, BLOCK_END)),
                 LocalDateTime.now(),
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
     }
 }

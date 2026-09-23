@@ -8,7 +8,9 @@ import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.reservations.domain.ReservationState;
 import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
@@ -23,6 +25,7 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,18 +40,21 @@ public class CreateReservationService implements CreateReservationUseCase {
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public CreateReservationService(
             ReservationRepositoryPort reservationRepositoryPort,
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -62,7 +68,7 @@ public class CreateReservationService implements CreateReservationUseCase {
 
         TimeBlock block = findRequestedBlock(command, config);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
 
         if (closures.shut(spaceId, date, block.start(), block.end())) {
@@ -99,13 +105,9 @@ public class CreateReservationService implements CreateReservationUseCase {
                 UUID.randomUUID().toString(),
                 command.userId(),
                 spaceId,
-                date,
-                block.start(),
-                block.end(),
+                new ReservationSchedule(date, block),
                 now,
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
 
         return reservationRepositoryPort.save(reservation);
     }

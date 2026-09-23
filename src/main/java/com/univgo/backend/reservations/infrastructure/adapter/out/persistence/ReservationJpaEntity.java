@@ -2,7 +2,7 @@ package com.univgo.backend.reservations.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.reservations.domain.CancelledBy;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -27,27 +27,14 @@ public class ReservationJpaEntity {
     @Column(name = "space_id", nullable = false)
     private UUID spaceId;
 
-    @Column(name = "reservation_date", nullable = false)
-    private LocalDate reservationDate;
-
-    @Column(name = "start_time", nullable = false)
-    private LocalTime startTime;
-
-    @Column(name = "end_time", nullable = false)
-    private LocalTime endTime;
+    @Embedded
+    private ReservationScheduleEmbeddable schedule;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "checked_in_at")
-    private LocalDateTime checkedInAt;
-
-    @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
-
-    @Convert(converter = CancelledByConverter.class)
-    @Column(name = "cancelled_by")
-    private CancelledBy cancelledBy;
+    @Embedded
+    private ReservationCheckpointEmbeddable checkpoint;
 
     protected ReservationJpaEntity() {
     }
@@ -57,24 +44,16 @@ public class ReservationJpaEntity {
             String qrCodeData,
             UUID userId,
             UUID spaceId,
-            LocalDate reservationDate,
-            LocalTime startTime,
-            LocalTime endTime,
+            ReservationScheduleEmbeddable schedule,
             LocalDateTime createdAt,
-            LocalDateTime checkedInAt,
-            LocalDateTime cancelledAt,
-            CancelledBy cancelledBy) {
+            ReservationCheckpointEmbeddable checkpoint) {
         this.id = id;
         this.qrCodeData = qrCodeData;
         this.userId = userId;
         this.spaceId = spaceId;
-        this.reservationDate = reservationDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.schedule = schedule;
         this.createdAt = createdAt;
-        this.checkedInAt = checkedInAt;
-        this.cancelledAt = cancelledAt;
-        this.cancelledBy = cancelledBy;
+        this.checkpoint = checkpoint;
     }
 
     public UUID getId() {
@@ -94,15 +73,15 @@ public class ReservationJpaEntity {
     }
 
     public LocalDate getReservationDate() {
-        return reservationDate;
+        return schedule.getReservationDate();
     }
 
     public LocalTime getStartTime() {
-        return startTime;
+        return schedule.getStartTime();
     }
 
     public LocalTime getEndTime() {
-        return endTime;
+        return schedule.getEndTime();
     }
 
     public LocalDateTime getCreatedAt() {
@@ -110,14 +89,14 @@ public class ReservationJpaEntity {
     }
 
     public LocalDateTime getCheckedInAt() {
-        return checkedInAt;
+        return checkpoint.getCheckedInAt();
     }
 
     public LocalDateTime getCancelledAt() {
-        return cancelledAt;
+        return checkpoint.getCancelledAt();
     }
 
     public CancelledBy getCancelledBy() {
-        return cancelledBy;
+        return checkpoint.getCancelledBy();
     }
 }
