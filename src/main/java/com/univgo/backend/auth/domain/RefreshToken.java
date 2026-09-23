@@ -14,9 +14,7 @@ public class RefreshToken {
     private final String tokenHash;
     private final Instant expiresAt;
     private final Instant createdAt;
-    private Instant revokedAt;
-    private String revokedReason;
-    private UUID replacedById;
+    private RevocationInfo revocationInfo;
 
     public RefreshToken(
             UUID id,
@@ -24,34 +22,29 @@ public class RefreshToken {
             String tokenHash,
             Instant expiresAt,
             Instant createdAt,
-            Instant revokedAt,
-            String revokedReason,
-            UUID replacedById) {
+            RevocationInfo revocationInfo) {
         this.id = id;
         this.userId = userId;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
         this.createdAt = createdAt;
-        this.revokedAt = revokedAt;
-        this.revokedReason = revokedReason;
-        this.replacedById = replacedById;
+        this.revocationInfo = revocationInfo;
     }
 
     public static RefreshToken issue(UUID userId, String tokenHash, Instant expiresAt) {
-        return new RefreshToken(UUID.randomUUID(), userId, tokenHash, expiresAt, Instant.now(), null, null, null);
+        return new RefreshToken(UUID.randomUUID(), userId, tokenHash, expiresAt, Instant.now(), RevocationInfo.none());
     }
 
     public void revoke(String reason) {
-        this.revokedAt = Instant.now();
-        this.revokedReason = reason;
+        this.revocationInfo = this.revocationInfo.revoke(reason);
     }
 
     public void markReplacedBy(UUID newTokenId) {
-        this.replacedById = newTokenId;
+        this.revocationInfo = this.revocationInfo.withReplacedBy(newTokenId);
     }
 
     public boolean isRevoked() {
-        return revokedAt != null;
+        return revocationInfo.isRevoked();
     }
 
     public boolean isExpired() {
@@ -83,14 +76,14 @@ public class RefreshToken {
     }
 
     public Instant getRevokedAt() {
-        return revokedAt;
+        return revocationInfo.revokedAt();
     }
 
     public String getRevokedReason() {
-        return revokedReason;
+        return revocationInfo.revokedReason();
     }
 
     public UUID getReplacedById() {
-        return replacedById;
+        return revocationInfo.replacedById();
     }
 }
