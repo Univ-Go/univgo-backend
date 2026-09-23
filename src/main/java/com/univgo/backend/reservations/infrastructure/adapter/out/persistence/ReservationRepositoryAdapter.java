@@ -5,12 +5,16 @@ import com.univgo.backend.reservations.domain.Reservation;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
+
+    // this values is being used by the lock (this can be a random integer)
+    private static final int AFORO_LOCK_CLASS_ID = 1_918_989_140;
 
     private final ReservationJpaRepository reservationJpaRepository;
 
@@ -82,6 +86,16 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
         return reservationJpaRepository.findActiveByBlock(spaceId, date, startTime, endTime).stream()
                 .map(ReservationPersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public void lockBlockForBooking(UUID spaceId, LocalDate date, LocalTime startTime) {
+        reservationJpaRepository.acquireAdvisoryTransactionLock(AFORO_LOCK_CLASS_ID, blockKey(spaceId, date, startTime));
+    }
+
+
+    private static int blockKey(UUID spaceId, LocalDate date, LocalTime startTime) {
+        return Objects.hash(spaceId, date, startTime);
     }
 
     @Override
