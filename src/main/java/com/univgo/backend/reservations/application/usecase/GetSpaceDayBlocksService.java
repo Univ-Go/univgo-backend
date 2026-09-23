@@ -15,6 +15,7 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,25 +31,28 @@ public class GetSpaceDayBlocksService implements GetSpaceDayBlocksUseCase {
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public GetSpaceDayBlocksService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
     public List<SpaceBlockSummary> execute(UUID spaceId, LocalDate date) {
         Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         int dayOfWeek = date.getDayOfWeek().getValue();
         BlockReservations reservations =

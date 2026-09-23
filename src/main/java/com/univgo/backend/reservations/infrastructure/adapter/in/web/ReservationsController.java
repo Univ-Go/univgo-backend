@@ -14,6 +14,7 @@ import com.univgo.backend.spaces.application.port.in.GetSpaceClosuresUseCase;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.ReservationResponse;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
@@ -37,6 +38,7 @@ public class ReservationsController {
     private final CancelReservationUseCase cancelReservationUseCase;
     private final GetInstitutionConfigUseCase getInstitutionConfigUseCase;
     private final GetSpaceClosuresUseCase getSpaceClosuresUseCase;
+    private final Clock clock;
 
     public ReservationsController(
             CreateReservationUseCase createReservationUseCase,
@@ -44,13 +46,15 @@ public class ReservationsController {
             GetReservationByIdUseCase getReservationByIdUseCase,
             CancelReservationUseCase cancelReservationUseCase,
             GetInstitutionConfigUseCase getInstitutionConfigUseCase,
-            GetSpaceClosuresUseCase getSpaceClosuresUseCase) {
+            GetSpaceClosuresUseCase getSpaceClosuresUseCase,
+            Clock clock) {
         this.createReservationUseCase = createReservationUseCase;
         this.getReservationsByUserUseCase = getReservationsByUserUseCase;
         this.getReservationByIdUseCase = getReservationByIdUseCase;
         this.cancelReservationUseCase = cancelReservationUseCase;
         this.getInstitutionConfigUseCase = getInstitutionConfigUseCase;
         this.getSpaceClosuresUseCase = getSpaceClosuresUseCase;
+        this.clock = clock;
     }
 
     @PostMapping
@@ -66,7 +70,7 @@ public class ReservationsController {
         InstitutionConfig config = getInstitutionConfigUseCase.execute();
         SpaceClosures closures = SpaceClosures.of(getSpaceClosuresUseCase.inForce());
         return getReservationsByUserUseCase.execute(currentUserId(authentication)).stream()
-                .map(reservation -> ReservationResponse.from(reservation, config, closures))
+                .map(reservation -> ReservationResponse.from(reservation, config, closures, clock))
                 .toList();
     }
 
@@ -90,7 +94,8 @@ public class ReservationsController {
         return ReservationResponse.from(
                 reservation,
                 getInstitutionConfigUseCase.execute(),
-                SpaceClosures.of(getSpaceClosuresUseCase.inForce()));
+                SpaceClosures.of(getSpaceClosuresUseCase.inForce()),
+                clock);
     }
 
     private boolean isAdmin(Authentication authentication) {

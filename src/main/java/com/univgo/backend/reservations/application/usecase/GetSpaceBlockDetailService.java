@@ -18,6 +18,7 @@ import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,25 +35,28 @@ public class GetSpaceBlockDetailService implements GetSpaceBlockDetailUseCase {
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public GetSpaceBlockDetailService(
             SpaceRepositoryPort spaceRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             UserRepositoryPort userRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
     public SpaceBlockDetail execute(UUID spaceId, LocalDate date, LocalTime blockStart) {
         Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         LocalTime blockEnd = blockStart.plus(config.blockDuration());
 
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
