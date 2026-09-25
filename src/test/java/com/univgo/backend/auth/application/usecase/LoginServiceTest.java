@@ -14,6 +14,7 @@ import com.univgo.backend.auth.application.port.out.TokenProviderPort;
 import com.univgo.backend.auth.domain.InvalidCredentialsException;
 import com.univgo.backend.auth.domain.RefreshToken;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import com.univgo.backend.users.domain.PersonName;
 import com.univgo.backend.users.domain.User;
 import java.time.Instant;
 import java.util.Optional;
@@ -33,7 +34,7 @@ class LoginServiceTest {
 
     private static final String PASSWORD = "Contrasena123!";
     private static final User USER = new User(
-            UUID.randomUUID(), "1234567890", "sofia.ramirez@univgo.edu", "Sofía", "Ramírez", "hash",
+            UUID.randomUUID(), "1234567890", "sofia.ramirez@univgo.edu", new PersonName("Sofía", "Ramírez"), "hash",
             Set.of("STUDENT"), "Facultad de Ingeniería");
 
     @Mock

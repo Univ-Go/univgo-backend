@@ -1,6 +1,9 @@
 package com.univgo.backend.spaces.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import java.util.List;
 import java.util.Optional;
@@ -51,27 +54,21 @@ public class SpaceClosureRepositoryAdapter implements SpaceClosureRepositoryPort
         return new SpaceClosureJpaEntity(
                 closure.getId(),
                 closure.getSpaceId(),
-                closure.getStartsAt(),
-                closure.getEndsAt(),
-                closure.getReason(),
-                closure.getDetails(),
+                new SpaceClosurePeriodEmbeddable(closure.getStartsAt(), closure.getEndsAt()),
+                new SpaceClosureCauseEmbeddable(closure.getReason(), closure.getDetails()),
                 closure.getCreatedBy(),
                 closure.getCreatedAt(),
-                closure.getRevertedAt(),
-                closure.getRevertedBy());
+                new SpaceClosureReversionEmbeddable(closure.getRevertedAt(), closure.getRevertedBy()));
     }
 
     private static SpaceClosure toDomain(SpaceClosureJpaEntity entity) {
         return new SpaceClosure(
                 entity.getId(),
                 entity.getSpaceId(),
-                entity.getStartsAt(),
-                entity.getEndsAt(),
-                entity.getReason(),
-                entity.getDetails(),
+                new ClosurePeriod(entity.getStartsAt(), entity.getEndsAt()),
+                new ClosureCause(entity.getReason(), entity.getDetails()),
                 entity.getCreatedBy(),
                 entity.getCreatedAt(),
-                entity.getRevertedAt(),
-                entity.getRevertedBy());
+                new ClosureReversion(entity.getRevertedAt(), entity.getRevertedBy()));
     }
 }

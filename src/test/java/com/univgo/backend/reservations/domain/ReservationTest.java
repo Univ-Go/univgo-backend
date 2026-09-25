@@ -3,6 +3,7 @@ package com.univgo.backend.reservations.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -102,12 +103,8 @@ class ReservationTest {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
+                new ReservationSchedule(DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),
                 LocalDateTime.of(DATE.minusDays(1), LocalTime.of(9, 0)),
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
     }
 }

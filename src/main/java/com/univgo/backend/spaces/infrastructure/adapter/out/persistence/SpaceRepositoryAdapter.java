@@ -2,6 +2,7 @@ package com.univgo.backend.spaces.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceDetails;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -40,7 +41,6 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
                 entity.getCapacity(),
                 entity.getSpaceTypeId(),
                 entity.getSpaceType().getCategory(),
-                entity.getDescription(),
-                Arrays.asList(entity.getRules()));
+                new SpaceDetails(entity.getDescription(), Arrays.asList(entity.getRules())));
     }
 }

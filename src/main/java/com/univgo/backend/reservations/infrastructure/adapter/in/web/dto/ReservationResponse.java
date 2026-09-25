@@ -8,6 +8,7 @@ import com.univgo.backend.reservations.domain.ReservationStatus;
 import com.univgo.backend.reservations.domain.ReservationStatusResolver;
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosures;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -40,8 +41,8 @@ public record ReservationResponse(
     // Suspension is resolved here too: it is the reservation's clock read against the space's
     // closures, and neither of the two is stored (spec §12).
     public static ReservationResponse from(
-            Reservation reservation, InstitutionConfig config, SpaceClosures closures) {
-        LocalDateTime now = LocalDateTime.now();
+            Reservation reservation, InstitutionConfig config, SpaceClosures closures, Clock clock) {
+        LocalDateTime now = LocalDateTime.now(clock);
         ReservationStatus status = ReservationStatusResolver.resolve(reservation, closures, now, config);
         LocalDateTime cancellationDeadline = reservation.cancellationDeadline();
         return new ReservationResponse(

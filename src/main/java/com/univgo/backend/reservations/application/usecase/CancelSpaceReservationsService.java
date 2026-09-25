@@ -7,6 +7,7 @@ import com.univgo.backend.reservations.domain.CancelledBy;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationState;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -17,17 +18,21 @@ public class CancelSpaceReservationsService implements CancelSpaceReservationsUs
 
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final Clock clock;
 
     public CancelSpaceReservationsService(
-            ReservationRepositoryPort reservationRepositoryPort, InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            ReservationRepositoryPort reservationRepositoryPort,
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
     public int execute(UUID spaceId) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<Reservation> activeReservations = reservationRepositoryPort.findActiveBySpaceId(spaceId);
 
         int cancelled = 0;

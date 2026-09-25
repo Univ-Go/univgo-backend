@@ -11,17 +11,25 @@ import com.univgo.backend.reservations.application.port.out.InstitutionConfigRep
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
+import com.univgo.backend.spaces.domain.SpaceDetails;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -56,6 +65,9 @@ class GetSpaceCatalogServiceTest {
 
     @Mock
     private SpaceImageRepositoryPort spaceImageRepositoryPort;
+
+    @Spy
+    private Clock clock = Clock.systemDefaultZone();
 
     @InjectMocks
     private GetSpaceCatalogService service;
@@ -212,14 +224,11 @@ class GetSpaceCatalogServiceTest {
         return new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
+                new ClosurePeriod(startsAt, endsAt),
+                new ClosureCause(ClosureReason.MAINTENANCE, null),
                 UUID.randomUUID(),
                 LocalDateTime.now(),
-                null,
-                null);
+                ClosureReversion.none());
     }
 
     private static Space space(int capacity) {
@@ -230,8 +239,7 @@ class GetSpaceCatalogServiceTest {
                 capacity,
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of("Usa toalla sobre las máquinas"));
+                new SpaceDetails("Sala de musculación y cardio", List.of("Usa toalla sobre las máquinas")));
     }
 
     private static List<SpaceSchedule> openFrom(int startHour, int endHour) {
@@ -245,12 +253,8 @@ class GetSpaceCatalogServiceTest {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(),
                 SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
+                new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),
                 LocalDateTime.now(),
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
     }
 }

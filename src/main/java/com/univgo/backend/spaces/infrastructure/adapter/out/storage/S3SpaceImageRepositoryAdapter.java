@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.S3Object;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -55,7 +55,7 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
     private final S3Presigner s3Presigner;
     private final S3Properties properties;
 
-    private volatile CachedUrls cache;
+    private final AtomicReference<CachedUrls> cache = new AtomicReference<>();
 
     public S3SpaceImageRepositoryAdapter(S3Client s3Client, S3Presigner s3Presigner, S3Properties properties) {
         this.s3Client = s3Client;
@@ -65,21 +65,21 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
 
     @Override
     public Map<UUID, List<String>> findAllImageUrls() {
-        CachedUrls cached = cache;
+        CachedUrls cached = cache.get();
 
         if (cached != null && cached.isValidAt(Instant.now())) {
             return cached.urls();
         }
 
         synchronized (this) {
-            cached = cache;
+            cached = cache.get();
 
             if (cached != null && cached.isValidAt(Instant.now())) {
                 return cached.urls();
             }
 
             Map<UUID, List<String>> fresh = listAndPresign();
-            cache = new CachedUrls(fresh, Instant.now().plus(CACHE_DURATION));
+            cache.set(new CachedUrls(fresh, Instant.now().plus(CACHE_DURATION)));
 
             return fresh;
         }
@@ -112,17 +112,15 @@ public class S3SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
         }
         try {
             return Optional.of(UUID.fromString(parts[1]));
-        } catch (IllegalArgumentException notAUuid) {
+        } catch (IllegalArgumentException _) {
             return Optional.empty();
         }
     }
 
     private String presign(String key) {
-        GetObjectRequest getRequest =
-                GetObjectRequest.builder().bucket(properties.bucket()).key(key).build();
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(PRESIGN_DURATION)
-                .getObjectRequest(getRequest)
+                .getObjectRequest(getRequest -> getRequest.bucket(properties.bucket()).key(key))
                 .build();
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }

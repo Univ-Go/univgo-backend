@@ -1,6 +1,7 @@
 package com.univgo.backend.auth.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.auth.domain.RefreshToken;
+import com.univgo.backend.auth.domain.RevocationInfo;
 
 final class RefreshTokenPersistenceMapper {
 
@@ -14,9 +15,7 @@ final class RefreshTokenPersistenceMapper {
                 entity.getTokenHash(),
                 entity.getExpiresAt(),
                 entity.getCreatedAt(),
-                entity.getRevokedAt(),
-                entity.getRevokedReason(),
-                entity.getReplacedById());
+                new RevocationInfo(entity.getRevokedAt(), entity.getRevokedReason(), entity.getReplacedById()));
     }
 
     static RefreshTokenJpaEntity toEntity(RefreshToken domain) {
@@ -26,8 +25,7 @@ final class RefreshTokenPersistenceMapper {
                 domain.getTokenHash(),
                 domain.getExpiresAt(),
                 domain.getCreatedAt(),
-                domain.getRevokedAt(),
-                domain.getRevokedReason(),
-                domain.getReplacedById());
+                new RefreshTokenRevocationEmbeddable(
+                        domain.getRevokedAt(), domain.getRevokedReason(), domain.getReplacedById()));
     }
 }

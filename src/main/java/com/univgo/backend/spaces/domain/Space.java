@@ -11,8 +11,7 @@ public class Space {
     private final int capacity;
     private final UUID spaceTypeId;
     private final SpaceCategory category;
-    private final String description;
-    private final List<String> rules;
+    private final SpaceDetails details;
 
     /**
      * Whether the space is open is not one of its properties: it is whether a closure covers the
@@ -26,16 +25,14 @@ public class Space {
             int capacity,
             UUID spaceTypeId,
             SpaceCategory category,
-            String description,
-            List<String> rules) {
+            SpaceDetails details) {
         this.id = id;
         this.name = name;
         this.location = location;
         this.capacity = capacity;
         this.spaceTypeId = spaceTypeId;
         this.category = category;
-        this.description = description;
-        this.rules = List.copyOf(rules);
+        this.details = details;
     }
 
     public UUID getId() {
@@ -63,7 +60,7 @@ public class Space {
     }
 
     public String getDescription() {
-        return description;
+        return details.description();
     }
 
     /**
@@ -72,7 +69,7 @@ public class Space {
      * a space whose rules nobody has written yet, which the views read as "no section".
      */
     public List<String> getRules() {
-        return rules;
+        return details.rules();
     }
 
 }

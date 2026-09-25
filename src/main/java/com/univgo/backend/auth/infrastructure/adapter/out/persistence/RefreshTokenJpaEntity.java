@@ -1,6 +1,7 @@
 package com.univgo.backend.auth.infrastructure.adapter.out.persistence;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -26,14 +27,8 @@ public class RefreshTokenJpaEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    @Column(name = "revoked_at")
-    private Instant revokedAt;
-
-    @Column(name = "revoked_reason", length = 20)
-    private String revokedReason;
-
-    @Column(name = "replaced_by_id")
-    private UUID replacedById;
+    @Embedded
+    private RefreshTokenRevocationEmbeddable revocation;
 
     protected RefreshTokenJpaEntity() {
     }
@@ -44,17 +39,13 @@ public class RefreshTokenJpaEntity {
             String tokenHash,
             Instant expiresAt,
             Instant createdAt,
-            Instant revokedAt,
-            String revokedReason,
-            UUID replacedById) {
+            RefreshTokenRevocationEmbeddable revocation) {
         this.id = id;
         this.userId = userId;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
         this.createdAt = createdAt;
-        this.revokedAt = revokedAt;
-        this.revokedReason = revokedReason;
-        this.replacedById = replacedById;
+        this.revocation = revocation;
     }
 
     public UUID getId() {
@@ -78,14 +69,14 @@ public class RefreshTokenJpaEntity {
     }
 
     public Instant getRevokedAt() {
-        return revokedAt;
+        return revocation.getRevokedAt();
     }
 
     public String getRevokedReason() {
-        return revokedReason;
+        return revocation.getRevokedReason();
     }
 
     public UUID getReplacedById() {
-        return replacedById;
+        return revocation.getReplacedById();
     }
 }

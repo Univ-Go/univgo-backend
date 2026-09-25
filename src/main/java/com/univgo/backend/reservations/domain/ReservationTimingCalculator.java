@@ -61,15 +61,14 @@ public final class ReservationTimingCalculator {
             LocalDateTime createdAt,
             LocalDateTime checkedInAt,
             LocalDateTime cancelledAt,
-            Duration tolerance,
-            Duration minUsage) {
+            TimingRules rules) {
         if (cancelledAt != null) {
             return ReservationState.CANCELLED;
         }
         if (checkedInAt != null) {
             return now.isBefore(blockEnd) ? ReservationState.IN_PROGRESS : ReservationState.FINISHED;
         }
-        LocalDateTime closesAt = checkInClosesAt(blockStart, blockEnd, createdAt, tolerance, minUsage);
+        LocalDateTime closesAt = checkInClosesAt(blockStart, blockEnd, createdAt, rules.tolerance(), rules.minUsage());
         return now.isAfter(closesAt) ? ReservationState.EXPIRED : ReservationState.RESERVED;
     }
 }

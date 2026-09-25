@@ -21,53 +21,43 @@ public class SpaceClosure {
 
     private final UUID id;
     private final UUID spaceId;
-    private final LocalDateTime startsAt;
-    private final LocalDateTime endsAt;
-    private final ClosureReason reason;
-    private final String details;
+    private final ClosurePeriod period;
+    private final ClosureCause cause;
     private final UUID createdBy;
     private final LocalDateTime createdAt;
-    private LocalDateTime revertedAt;
-    private UUID revertedBy;
+    private ClosureReversion reversion;
 
     public SpaceClosure(
             UUID id,
             UUID spaceId,
-            LocalDateTime startsAt,
-            LocalDateTime endsAt,
-            ClosureReason reason,
-            String details,
+            ClosurePeriod period,
+            ClosureCause cause,
             UUID createdBy,
             LocalDateTime createdAt,
-            LocalDateTime revertedAt,
-            UUID revertedBy) {
-        if (endsAt != null && !endsAt.isAfter(startsAt)) {
-            throw new IllegalArgumentException("A closure ends after it starts");
-        }
+            ClosureReversion reversion) {
         this.id = id;
         this.spaceId = spaceId;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
-        this.reason = reason;
-        this.details = details;
+        this.period = period;
+        this.cause = cause;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
-        this.revertedAt = revertedAt;
-        this.revertedBy = revertedBy;
+        this.reversion = reversion;
     }
 
     /** In force until reverted: a closure whose window has passed is history, not a fact about now. */
     public boolean isInForce() {
-        return revertedAt == null;
+        return !reversion.isReverted();
     }
 
     /** Open-ended closures are what the maintenance switch creates, and what it reverts. */
     public boolean isIndefinite() {
-        return endsAt == null;
+        return period.endsAt() == null;
     }
 
     public boolean coversInstant(LocalDateTime instant) {
-        return isInForce() && !instant.isBefore(startsAt) && (endsAt == null || instant.isBefore(endsAt));
+        return isInForce()
+                && !instant.isBefore(period.startsAt())
+                && (period.endsAt() == null || instant.isBefore(period.endsAt()));
     }
 
     /**
@@ -80,15 +70,15 @@ public class SpaceClosure {
         }
         LocalDateTime start = LocalDateTime.of(date, blockStart);
         LocalDateTime end = LocalDateTime.of(date, blockEnd);
-        return start.isBefore(endsAt == null ? end : endsAt) && startsAt.isBefore(end);
+        LocalDateTime endsAt = period.endsAt();
+        return start.isBefore(endsAt == null ? end : endsAt) && period.startsAt().isBefore(end);
     }
 
     public void revert(UUID actor, LocalDateTime now) {
         if (!isInForce()) {
             throw new IllegalStateException("Closure " + id + " was already reverted");
         }
-        this.revertedAt = now;
-        this.revertedBy = actor;
+        this.reversion = new ClosureReversion(now, actor);
     }
 
     public UUID getId() {
@@ -100,19 +90,19 @@ public class SpaceClosure {
     }
 
     public LocalDateTime getStartsAt() {
-        return startsAt;
+        return period.startsAt();
     }
 
     public LocalDateTime getEndsAt() {
-        return endsAt;
+        return period.endsAt();
     }
 
     public ClosureReason getReason() {
-        return reason;
+        return cause.reason();
     }
 
     public String getDetails() {
-        return details;
+        return cause.details();
     }
 
     public UUID getCreatedBy() {
@@ -124,10 +114,10 @@ public class SpaceClosure {
     }
 
     public LocalDateTime getRevertedAt() {
-        return revertedAt;
+        return reversion.revertedAt();
     }
 
     public UUID getRevertedBy() {
-        return revertedBy;
+        return reversion.revertedBy();
     }
 }

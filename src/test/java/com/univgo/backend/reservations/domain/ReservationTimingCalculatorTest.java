@@ -115,6 +115,12 @@ class ReservationTimingCalculatorTest {
     private static ReservationState stateAt(
             LocalTime now, LocalDateTime createdAt, LocalDateTime checkedInAt, LocalDateTime cancelledAt) {
         return ReservationTimingCalculator.stateAt(
-                LocalDateTime.of(DATE, now), BLOCK_START, BLOCK_END, createdAt, checkedInAt, cancelledAt, TOLERANCE, MIN_USAGE);
+                LocalDateTime.of(DATE, now),
+                BLOCK_START,
+                BLOCK_END,
+                createdAt,
+                checkedInAt,
+                cancelledAt,
+                new TimingRules(TOLERANCE, MIN_USAGE));
     }
 }

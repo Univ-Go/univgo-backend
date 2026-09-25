@@ -18,45 +18,36 @@ public class Reservation {
     private final String qrCodeData;
     private final UUID userId;
     private final UUID spaceId;
-    private final LocalDate reservationDate;
-    private final LocalTime blockStart;
-    private final LocalTime blockEnd;
+    private final ReservationSchedule schedule;
     private final LocalDateTime createdAt;
-    private LocalDateTime checkedInAt;
-    private LocalDateTime cancelledAt;
-    private CancelledBy cancelledBy;
+    private ReservationCheckpoint checkpoint;
 
     public Reservation(
             UUID id,
             String qrCodeData,
             UUID userId,
             UUID spaceId,
-            LocalDate reservationDate,
-            LocalTime blockStart,
-            LocalTime blockEnd,
+            ReservationSchedule schedule,
             LocalDateTime createdAt,
-            LocalDateTime checkedInAt,
-            LocalDateTime cancelledAt,
-            CancelledBy cancelledBy) {
-        if (!blockEnd.isAfter(blockStart)) {
-            throw new IllegalArgumentException("blockEnd must be after blockStart");
-        }
+            ReservationCheckpoint checkpoint) {
         this.id = id;
         this.qrCodeData = qrCodeData;
         this.userId = userId;
         this.spaceId = spaceId;
-        this.reservationDate = reservationDate;
-        this.blockStart = blockStart;
-        this.blockEnd = blockEnd;
+        this.schedule = schedule;
         this.createdAt = createdAt;
-        this.checkedInAt = checkedInAt;
-        this.cancelledAt = cancelledAt;
-        this.cancelledBy = cancelledBy;
+        this.checkpoint = checkpoint;
     }
 
     public ReservationState stateAt(LocalDateTime now, Duration tolerance, Duration minUsage) {
         return ReservationTimingCalculator.stateAt(
-                now, blockStartDateTime(), blockEndDateTime(), createdAt, checkedInAt, cancelledAt, tolerance, minUsage);
+                now,
+                schedule.startDateTime(),
+                schedule.endDateTime(),
+                createdAt,
+                checkpoint.checkedInAt(),
+                checkpoint.cancelledAt(),
+                new TimingRules(tolerance, minUsage));
     }
 
     public void cancel(CancelledBy actor, LocalDateTime now, Duration tolerance, Duration minUsage) {
@@ -68,35 +59,27 @@ public class Reservation {
             throw new InvalidReservationStateException(current);
         }
         if (actor == CancelledBy.STUDENT && now.isAfter(cancellationDeadline())) {
-            throw new CancellationWindowClosedException(id, blockStartDateTime());
+            throw new CancellationWindowClosedException(id, schedule.startDateTime());
         }
-        this.cancelledAt = now;
-        this.cancelledBy = actor;
+        this.checkpoint = checkpoint.withCancellation(actor, now);
     }
 
     /** Last instant a student may cancel: block start minus one hour. */
     public LocalDateTime cancellationDeadline() {
-        return ReservationTimingCalculator.cancellationDeadline(blockStartDateTime());
+        return ReservationTimingCalculator.cancellationDeadline(schedule.startDateTime());
     }
 
     public void checkIn(LocalDateTime now) {
-        this.checkedInAt = now;
+        this.checkpoint = checkpoint.withCheckIn(now);
     }
 
     public LocalDateTime checkInOpensAt(Duration tolerance) {
-        return ReservationTimingCalculator.checkInOpensAt(blockStartDateTime(), createdAt, tolerance);
+        return ReservationTimingCalculator.checkInOpensAt(schedule.startDateTime(), createdAt, tolerance);
     }
 
     public LocalDateTime checkInClosesAt(Duration tolerance, Duration minUsage) {
-        return ReservationTimingCalculator.checkInClosesAt(blockStartDateTime(), blockEndDateTime(), createdAt, tolerance, minUsage);
-    }
-
-    private LocalDateTime blockStartDateTime() {
-        return LocalDateTime.of(reservationDate, blockStart);
-    }
-
-    private LocalDateTime blockEndDateTime() {
-        return LocalDateTime.of(reservationDate, blockEnd);
+        return ReservationTimingCalculator.checkInClosesAt(
+                schedule.startDateTime(), schedule.endDateTime(), createdAt, tolerance, minUsage);
     }
 
     public UUID getId() {
@@ -116,15 +99,15 @@ public class Reservation {
     }
 
     public LocalDate getReservationDate() {
-        return reservationDate;
+        return schedule.date();
     }
 
     public LocalTime getBlockStart() {
-        return blockStart;
+        return schedule.block().start();
     }
 
     public LocalTime getBlockEnd() {
-        return blockEnd;
+        return schedule.block().end();
     }
 
     public LocalDateTime getCreatedAt() {
@@ -132,14 +115,14 @@ public class Reservation {
     }
 
     public LocalDateTime getCheckedInAt() {
-        return checkedInAt;
+        return checkpoint.checkedInAt();
     }
 
     public LocalDateTime getCancelledAt() {
-        return cancelledAt;
+        return checkpoint.cancelledAt();
     }
 
     public CancelledBy getCancelledBy() {
-        return cancelledBy;
+        return checkpoint.cancelledBy();
     }
 }

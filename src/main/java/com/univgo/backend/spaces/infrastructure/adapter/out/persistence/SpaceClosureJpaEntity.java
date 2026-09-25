@@ -2,7 +2,7 @@ package com.univgo.backend.spaces.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.spaces.domain.ClosureReason;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -19,20 +19,11 @@ public class SpaceClosureJpaEntity {
     @Column(name = "space_id", nullable = false)
     private UUID spaceId;
 
-    @Column(name = "starts_at", nullable = false)
-    private LocalDateTime startsAt;
+    @Embedded
+    private SpaceClosurePeriodEmbeddable period;
 
-    @Column(name = "ends_at")
-    private LocalDateTime endsAt;
-
-    /** Same arrangement the reservation's own enums use: a converter writes the lower-case label,
-     *  and {@code stringtype=unspecified} in the JDBC URL lets Postgres cast it to its enum type. */
-    @Convert(converter = ClosureReasonConverter.class)
-    @Column(nullable = false)
-    private ClosureReason reason;
-
-    @Column
-    private String details;
+    @Embedded
+    private SpaceClosureCauseEmbeddable cause;
 
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
@@ -40,11 +31,8 @@ public class SpaceClosureJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "reverted_at")
-    private LocalDateTime revertedAt;
-
-    @Column(name = "reverted_by")
-    private UUID revertedBy;
+    @Embedded
+    private SpaceClosureReversionEmbeddable reversion;
 
     protected SpaceClosureJpaEntity() {
     }
@@ -52,24 +40,18 @@ public class SpaceClosureJpaEntity {
     public SpaceClosureJpaEntity(
             UUID id,
             UUID spaceId,
-            LocalDateTime startsAt,
-            LocalDateTime endsAt,
-            ClosureReason reason,
-            String details,
+            SpaceClosurePeriodEmbeddable period,
+            SpaceClosureCauseEmbeddable cause,
             UUID createdBy,
             LocalDateTime createdAt,
-            LocalDateTime revertedAt,
-            UUID revertedBy) {
+            SpaceClosureReversionEmbeddable reversion) {
         this.id = id;
         this.spaceId = spaceId;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
-        this.reason = reason;
-        this.details = details;
+        this.period = period;
+        this.cause = cause;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
-        this.revertedAt = revertedAt;
-        this.revertedBy = revertedBy;
+        this.reversion = reversion;
     }
 
     public UUID getId() {
@@ -81,19 +63,19 @@ public class SpaceClosureJpaEntity {
     }
 
     public LocalDateTime getStartsAt() {
-        return startsAt;
+        return period.getStartsAt();
     }
 
     public LocalDateTime getEndsAt() {
-        return endsAt;
+        return period.getEndsAt();
     }
 
     public ClosureReason getReason() {
-        return reason;
+        return cause.getReason();
     }
 
     public String getDetails() {
-        return details;
+        return cause.getDetails();
     }
 
     public UUID getCreatedBy() {
@@ -105,10 +87,10 @@ public class SpaceClosureJpaEntity {
     }
 
     public LocalDateTime getRevertedAt() {
-        return revertedAt;
+        return reversion.getRevertedAt();
     }
 
     public UUID getRevertedBy() {
-        return revertedBy;
+        return reversion.getRevertedBy();
     }
 }

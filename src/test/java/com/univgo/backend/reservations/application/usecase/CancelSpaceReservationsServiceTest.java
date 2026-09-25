@@ -10,6 +10,10 @@ import com.univgo.backend.reservations.application.port.out.InstitutionConfigRep
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.ReservationCheckpoint;
+import com.univgo.backend.reservations.domain.ReservationSchedule;
+import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +34,9 @@ class CancelSpaceReservationsServiceTest {
 
     @Mock
     private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+
+    @Spy
+    private Clock clock = Clock.systemDefaultZone();
 
     @InjectMocks
     private CancelSpaceReservationsService service;
@@ -70,12 +78,8 @@ class CancelSpaceReservationsServiceTest {
                 UUID.randomUUID().toString(),
                 UUID.randomUUID(),
                 SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
+                new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),
                 LocalDateTime.now(),
-                null,
-                null,
-                null);
+                ReservationCheckpoint.initial());
     }
 }

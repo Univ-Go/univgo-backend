@@ -19,6 +19,7 @@ import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -46,6 +47,7 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
     private final SpaceImageRepositoryPort spaceImageRepositoryPort;
+    private final Clock clock;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
@@ -53,19 +55,21 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             SpaceClosureRepositoryPort spaceClosureRepositoryPort,
-            SpaceImageRepositoryPort spaceImageRepositoryPort) {
+            SpaceImageRepositoryPort spaceImageRepositoryPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
         this.spaceImageRepositoryPort = spaceImageRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
     public List<SpaceCatalogItem> execute(LocalDate date) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
                 .findByDayOfWeek(date.getDayOfWeek().getValue())
@@ -78,8 +82,10 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
         Map<UUID, List<String>> images = spaceImageRepositoryPort.findAllImageUrls();
 
+        CatalogQueryContext context = new CatalogQueryContext(now, config, schedules, reservations, closures, images);
+
         return spaceRepositoryPort.findAll().stream()
-                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures, images))
+                .map(space -> toCatalogItem(space, date, context))
                 .toList();
     }
 
@@ -92,34 +98,27 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 .stream()
                 .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
 
-        return toCatalogItem(
-                space,
-                date,
-                LocalDateTime.now(),
+        CatalogQueryContext context = new CatalogQueryContext(
+                LocalDateTime.now(clock),
                 institutionConfigRepositoryPort.getCurrent(),
                 schedules,
                 BlockReservations.of(reservationRepositoryPort.findActiveByDate(date)),
                 SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce()),
                 spaceImageRepositoryPort.findAllImageUrls());
+
+        return toCatalogItem(space, date, context);
     }
 
-    private SpaceCatalogItem toCatalogItem(
-            Space space,
-            LocalDate date,
-            LocalDateTime now,
-            InstitutionConfig config,
-            Map<UUID, List<SpaceSchedule>> schedules,
-            BlockReservations reservations,
-            SpaceClosures closures,
-            Map<UUID, List<String>> images) {
+    private SpaceCatalogItem toCatalogItem(Space space, LocalDate date, CatalogQueryContext context) {
         List<TimeBlock> blocks = BlockGenerator.generate(
-                schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
+                context.schedules().getOrDefault(space.getId(), List.of()), context.config().blockDuration());
 
         // Three different silences, told apart here because the catalog is where somebody decides
         // whether to walk over: a space with no hours that day, one that is shut, and a full one.
         boolean opensOnDate = !blocks.isEmpty();
         boolean closedOnDate = opensOnDate
-                && blocks.stream().allMatch(block -> closures.shut(space.getId(), date, block.start(), block.end()));
+                && blocks.stream()
+                        .allMatch(block -> context.closures().shut(space.getId(), date, block.start(), block.end()));
 
         return new SpaceCatalogItem(
                 space.getId(),
@@ -127,11 +126,11 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 space.getLocation(),
                 space.getCategory(),
                 space.getCapacity(),
-                closures.shutAt(space.getId(), now),
+                context.closures().shutAt(space.getId(), context.now()),
                 opensOnDate,
                 closedOnDate,
-                freeBlockStarts(blocks, space, date, now, config, reservations, closures),
-                images.getOrDefault(space.getId(), List.of()),
+                freeBlockStarts(blocks, space, date, context),
+                context.images().getOrDefault(space.getId(), List.of()),
                 space.getDescription(),
                 space.getRules());
     }
@@ -141,34 +140,30 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
      * with another reservation is answered by the availability of a single space, where there is
      * room to explain it. Listing it here would hide the space instead.
      */
-    private List<LocalTime> freeBlockStarts(
-            List<TimeBlock> blocks,
-            Space space,
-            LocalDate date,
-            LocalDateTime now,
-            InstitutionConfig config,
-            BlockReservations reservations,
-            SpaceClosures closures) {
+    private List<LocalTime> freeBlockStarts(List<TimeBlock> blocks, Space space, LocalDate date, CatalogQueryContext context) {
         return blocks.stream()
-                .filter(block -> !closures.shut(space.getId(), date, block.start(), block.end()))
-                .filter(block -> hasRoom(space, date, block, now, config, reservations, closures))
+                .filter(block -> !context.closures().shut(space.getId(), date, block.start(), block.end()))
+                .filter(block -> hasRoom(space, date, block, context))
                 .map(TimeBlock::start)
                 .toList();
     }
 
-    private boolean hasRoom(
-            Space space,
-            LocalDate date,
-            TimeBlock block,
-            LocalDateTime now,
-            InstitutionConfig config,
-            BlockReservations reservations,
-            SpaceClosures closures) {
-        if (!ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance())) {
+    private boolean hasRoom(Space space, LocalDate date, TimeBlock block, CatalogQueryContext context) {
+        if (!ReservationTimingCalculator.isBlockStillBookable(
+                date, block.end(), context.now(), context.config().minUsage(), context.config().tolerance())) {
             return false;
         }
-        long occupied =
-                OccupancyCounter.countOccupiedPlazas(reservations.of(space.getId(), block), closures, now, config);
+        long occupied = OccupancyCounter.countOccupiedPlazas(
+                context.reservations().of(space.getId(), block), context.closures(), context.now(), context.config());
         return occupied < space.getCapacity();
     }
+
+    /** Bundles the per-request lookups that stay the same across every space/block evaluated in one call. */
+    private record CatalogQueryContext(
+            LocalDateTime now,
+            InstitutionConfig config,
+            Map<UUID, List<SpaceSchedule>> schedules,
+            BlockReservations reservations,
+            SpaceClosures closures,
+            Map<UUID, List<String>> images) {}
 }
