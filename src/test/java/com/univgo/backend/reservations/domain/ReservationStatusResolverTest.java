@@ -2,7 +2,10 @@ package com.univgo.backend.reservations.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.TimeBlock;
@@ -106,14 +109,11 @@ class ReservationStatusResolverTest {
         return new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                LocalDateTime.of(DAY, LocalTime.of(8, 0)),
-                LocalDateTime.of(DAY, LocalTime.of(20, 0)),
-                ClosureReason.TECHNICAL_INCIDENT,
-                "Gotera en la cancha",
+                new ClosurePeriod(LocalDateTime.of(DAY, LocalTime.of(8, 0)), LocalDateTime.of(DAY, LocalTime.of(20, 0))),
+                new ClosureCause(ClosureReason.TECHNICAL_INCIDENT, "Gotera en la cancha"),
                 ADMIN_ID,
                 LocalDateTime.of(DAY, LocalTime.of(7, 0)),
-                null,
-                null);
+                ClosureReversion.none());
     }
 
     private static Reservation reserved() {

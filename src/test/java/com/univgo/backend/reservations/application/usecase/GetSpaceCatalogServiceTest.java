@@ -19,9 +19,13 @@ import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
+import com.univgo.backend.spaces.domain.SpaceDetails;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
@@ -220,14 +224,11 @@ class GetSpaceCatalogServiceTest {
         return new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
+                new ClosurePeriod(startsAt, endsAt),
+                new ClosureCause(ClosureReason.MAINTENANCE, null),
                 UUID.randomUUID(),
                 LocalDateTime.now(),
-                null,
-                null);
+                ClosureReversion.none());
     }
 
     private static Space space(int capacity) {
@@ -238,8 +239,7 @@ class GetSpaceCatalogServiceTest {
                 capacity,
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of("Usa toalla sobre las máquinas"));
+                new SpaceDetails("Sala de musculación y cardio", List.of("Usa toalla sobre las máquinas")));
     }
 
     private static List<SpaceSchedule> openFrom(int startHour, int endHour) {

@@ -2,11 +2,15 @@ package com.univgo.backend.reservations.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosures;
+import com.univgo.backend.spaces.domain.SpaceDetails;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -103,14 +107,11 @@ class BlockAvailabilityPolicyTest {
         SpaceClosure closure = new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                LocalDateTime.of(DATE, LocalTime.MIDNIGHT),
-                null,
-                ClosureReason.MAINTENANCE,
-                null,
+                new ClosurePeriod(LocalDateTime.of(DATE, LocalTime.MIDNIGHT), null),
+                new ClosureCause(ClosureReason.MAINTENANCE, null),
                 UUID.randomUUID(),
                 now,
-                null,
-                null);
+                ClosureReversion.none());
         AvailabilityContext context =
                 contextAt(now, List.of(), StudentDay.of(List.of()), SpaceClosures.of(List.of(closure)));
 
@@ -130,7 +131,8 @@ class BlockAvailabilityPolicyTest {
 
     private static Space space(int capacity) {
         return new Space(
-                SPACE_ID, "Gimnasio", "Bloque A", capacity, UUID.randomUUID(), SpaceCategory.SPORTS, "desc", List.of());
+                SPACE_ID, "Gimnasio", "Bloque A", capacity, UUID.randomUUID(), SpaceCategory.SPORTS,
+                new SpaceDetails("desc", List.of()));
     }
 
     private static Reservation reservation(UUID spaceId, UUID userId, TimeBlock block, LocalDateTime createdAt) {

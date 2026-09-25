@@ -93,13 +93,10 @@ class SpaceClosureTest {
         return new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
+                new ClosurePeriod(startsAt, endsAt),
+                new ClosureCause(ClosureReason.MAINTENANCE, null),
                 ADMIN_ID,
                 LocalDateTime.now(),
-                null,
-                null);
+                ClosureReversion.none());
     }
 }

@@ -4,6 +4,9 @@ import com.univgo.backend.shared.util.Uuidv7Generator;
 import com.univgo.backend.spaces.application.port.in.CloseSpaceUseCase;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import java.time.LocalDateTime;
@@ -32,13 +35,10 @@ public class CloseSpaceService implements CloseSpaceUseCase {
         return spaceClosureRepositoryPort.save(new SpaceClosure(
                 Uuidv7Generator.generate(),
                 command.spaceId(),
-                command.startsAt() == null ? now : command.startsAt(),
-                command.endsAt(),
-                command.reason(),
-                command.details(),
+                new ClosurePeriod(command.startsAt() == null ? now : command.startsAt(), command.endsAt()),
+                new ClosureCause(command.reason(), command.details()),
                 command.actor(),
                 now,
-                null,
-                null));
+                ClosureReversion.none()));
     }
 }

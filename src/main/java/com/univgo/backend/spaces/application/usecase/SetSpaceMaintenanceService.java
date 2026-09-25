@@ -4,7 +4,10 @@ import com.univgo.backend.shared.util.Uuidv7Generator;
 import com.univgo.backend.spaces.application.port.in.SetSpaceMaintenanceUseCase;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import java.time.LocalDateTime;
@@ -51,14 +54,11 @@ public class SetSpaceMaintenanceService implements SetSpaceMaintenanceUseCase {
                 spaceClosureRepositoryPort.save(new SpaceClosure(
                         Uuidv7Generator.generate(),
                         spaceId,
-                        now,
-                        null,
-                        ClosureReason.MAINTENANCE,
-                        null,
+                        new ClosurePeriod(now, null),
+                        new ClosureCause(ClosureReason.MAINTENANCE, null),
                         actor,
                         now,
-                        null,
-                        null));
+                        ClosureReversion.none()));
             }
             return;
         }

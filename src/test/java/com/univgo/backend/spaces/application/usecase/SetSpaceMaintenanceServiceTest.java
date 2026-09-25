@@ -9,7 +9,10 @@ import static org.mockito.Mockito.when;
 
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
+import com.univgo.backend.spaces.domain.ClosureCause;
+import com.univgo.backend.spaces.domain.ClosurePeriod;
 import com.univgo.backend.spaces.domain.ClosureReason;
+import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import java.time.LocalDateTime;
@@ -102,13 +105,10 @@ class SetSpaceMaintenanceServiceTest {
         return new SpaceClosure(
                 UUID.randomUUID(),
                 SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
+                new ClosurePeriod(startsAt, endsAt),
+                new ClosureCause(ClosureReason.MAINTENANCE, null),
                 ADMIN_ID,
                 LocalDateTime.now(),
-                null,
-                null);
+                ClosureReversion.none());
     }
 }
