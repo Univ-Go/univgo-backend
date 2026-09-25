@@ -19,6 +19,7 @@ import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import com.univgo.backend.users.domain.PersonName;
 import com.univgo.backend.users.domain.User;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -178,7 +179,7 @@ class CheckInReservationServiceTest {
 
     private static User student() {
         return new User(
-                UUID.randomUUID(), "123", "ada@univgo.edu", "Ada", "Lovelace", "hash", Set.of("STUDENT"),
-                "Facultad de Ingeniería");
+                UUID.randomUUID(), "123", "ada@univgo.edu", new PersonName("Ada", "Lovelace"), "hash",
+                Set.of("STUDENT"), "Facultad de Ingeniería");
     }
 }

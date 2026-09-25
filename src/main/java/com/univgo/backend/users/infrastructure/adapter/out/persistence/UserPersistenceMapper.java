@@ -1,5 +1,6 @@
 package com.univgo.backend.users.infrastructure.adapter.out.persistence;
 
+import com.univgo.backend.users.domain.PersonName;
 import com.univgo.backend.users.domain.User;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,8 +18,7 @@ final class UserPersistenceMapper {
                 entity.getId(),
                 entity.getIdentification(),
                 entity.getEmail(),
-                entity.getFirstName(),
-                entity.getLastName(),
+                new PersonName(entity.getFirstName(), entity.getLastName()),
                 entity.getPassword(),
                 roles,
                 entity.getSchool());
