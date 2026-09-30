@@ -36,4 +36,7 @@ public interface ReservationRepositoryPort {
     List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date);
 
     List<Reservation> findActiveBySpaceId(UUID spaceId);
+
+    /** Candidates for a space penalty: this user's non-cancelled reservations for this space since {@code fromDate}. */
+    List<Reservation> findActiveByUserAndSpaceFromDate(UUID userId, UUID spaceId, LocalDate fromDate);
 }

@@ -16,12 +16,20 @@ public final class ReservationTimingCalculator {
     /** A student may only cancel up to one hour before the block starts. */
     public static final Duration CANCELLATION_WINDOW = Duration.ofHours(1);
 
+    /** A student who lets a reservation expire is barred from that space for 24 hours from the block's start. */
+    public static final Duration PENALTY_DURATION = Duration.ofHours(24);
+
     private ReservationTimingCalculator() {
     }
 
     /** Último instante en que un estudiante puede cancelar: inicio del bloque - 1 hora. */
     public static LocalDateTime cancellationDeadline(LocalDateTime blockStart) {
         return blockStart.minus(CANCELLATION_WINDOW);
+    }
+
+    /** Instant a space penalty for an expired reservation lifts: block start + 24 hours. */
+    public static LocalDateTime penaltyEndsAt(LocalDateTime blockStart) {
+        return blockStart.plus(PENALTY_DURATION);
     }
 
     /** Último instante en que un bloque se puede reservar: fin - uso_mínimo - tolerancia. */

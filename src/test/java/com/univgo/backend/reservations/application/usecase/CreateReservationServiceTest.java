@@ -18,6 +18,7 @@ import com.univgo.backend.reservations.domain.ReservationOverlapException;
 import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
+import com.univgo.backend.reservations.domain.SpacePenalizedException;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
@@ -36,6 +37,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -175,6 +177,72 @@ class CreateReservationServiceTest {
                 .thenReturn(List.of(sameSpaceEarlierBlock()));
 
         assertThatThrownBy(() -> service.execute(futureCommand)).isInstanceOf(SpaceAlreadyReservedTodayException.class);
+    }
+
+    @Test
+    void throwsWhenStudentIsPenalizedForLettingAReservationExpireInThatSpace() {
+        LocalDateTime fixedNow = LocalDateTime.of(2025, 6, 10, 10, 0);
+        CreateReservationService penalizedService = new CreateReservationService(
+                reservationRepositoryPort,
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.fixed(fixedNow.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault()));
+
+        // Started at 08:00, closed for check-in by 08:15 (tolerance 15m); never checked in: expired.
+        Reservation expired = new Reservation(
+                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
+                USER_ID,
+                SPACE_ID,
+                new ReservationSchedule(fixedNow.toLocalDate(), new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
+                LocalDateTime.of(fixedNow.toLocalDate(), LocalTime.of(7, 0)),
+                ReservationCheckpoint.initial());
+
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(reservationRepositoryPort.findActiveByUserAndSpaceFromDate(USER_ID, SPACE_ID, fixedNow.minusHours(24).toLocalDate()))
+                .thenReturn(List.of(expired));
+
+        assertThatThrownBy(() -> penalizedService.execute(futureCommand)).isInstanceOf(SpacePenalizedException.class);
+    }
+
+    @Test
+    void anExpiredReservationWhosePenaltyHasAlreadyLiftedDoesNotStopTheBooking() {
+        LocalDateTime fixedNow = LocalDateTime.of(2025, 6, 10, 10, 0);
+        CreateReservationService penalizedService = new CreateReservationService(
+                reservationRepositoryPort,
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.fixed(fixedNow.atZone(ZoneId.systemDefault()).toInstant(), ZoneId.systemDefault()));
+
+        // Expired two days ago: its 24-hour penalty lifted a day ago.
+        LocalDate oldDate = fixedNow.toLocalDate().minusDays(2);
+        Reservation longExpired = new Reservation(
+                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
+                USER_ID,
+                SPACE_ID,
+                new ReservationSchedule(oldDate, new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
+                LocalDateTime.of(oldDate, LocalTime.of(7, 0)),
+                ReservationCheckpoint.initial());
+
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(reservationRepositoryPort.findActiveByUserAndSpaceFromDate(USER_ID, SPACE_ID, fixedNow.minusHours(24).toLocalDate()))
+                .thenReturn(List.of(longExpired));
+        when(reservationRepositoryPort.save(any(Reservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Reservation result = penalizedService.execute(futureCommand);
+
+        assertThat(result.getSpaceId()).isEqualTo(SPACE_ID);
     }
 
     @Test

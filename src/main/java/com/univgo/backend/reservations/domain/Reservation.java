@@ -69,6 +69,11 @@ public class Reservation {
         return ReservationTimingCalculator.cancellationDeadline(schedule.startDateTime());
     }
 
+    /** Instant this reservation's space penalty lifts, if it expires: block start plus 24 hours. */
+    public LocalDateTime penaltyEndsAt() {
+        return ReservationTimingCalculator.penaltyEndsAt(schedule.startDateTime());
+    }
+
     public void checkIn(LocalDateTime now) {
         this.checkpoint = checkpoint.withCheckIn(now);
     }

@@ -11,6 +11,7 @@ import com.univgo.backend.reservations.domain.ReservationNotFoundException;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
+import com.univgo.backend.reservations.domain.SpacePenalizedException;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
@@ -46,7 +47,8 @@ public class GlobalExceptionHandler {
         CancellationWindowClosedException.class,
         BlockCapacityFullException.class,
         BlockNoLongerBookableException.class,
-        SpaceAlreadyReservedTodayException.class
+        SpaceAlreadyReservedTodayException.class,
+        SpacePenalizedException.class
     })
     public ResponseEntity<Map<String, Object>> handleConflict(RuntimeException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());

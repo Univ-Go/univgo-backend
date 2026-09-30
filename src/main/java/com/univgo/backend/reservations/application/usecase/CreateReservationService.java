@@ -16,6 +16,7 @@ import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
 import com.univgo.backend.reservations.domain.ReservationStatusResolver;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
+import com.univgo.backend.reservations.domain.SpacePenalizedException;
 import com.univgo.backend.shared.util.Uuidv7Generator;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
@@ -78,6 +79,20 @@ public class CreateReservationService implements CreateReservationUseCase {
         if (!ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance())) {
             throw new BlockNoLongerBookableException(spaceId, date, block.start(), block.end());
         }
+
+        // A student who let a reservation for this same space expire is barred from it for 24 hours
+        // from that block's start. Only genuine no-shows count: a block the university closed resolves
+        // to suspended/closed, never expired, so it never penalizes.
+        LocalDate penaltyWindowStart = now.minusHours(24).toLocalDate();
+        reservationRepositoryPort.findActiveByUserAndSpaceFromDate(command.userId(), spaceId, penaltyWindowStart).stream()
+                .filter(reservation -> ReservationStatusResolver.resolve(reservation, closures, now, config).state()
+                        == ReservationState.EXPIRED)
+                .map(Reservation::penaltyEndsAt)
+                .filter(now::isBefore)
+                .findFirst()
+                .ifPresent(penaltyEndsAt -> {
+                    throw new SpacePenalizedException(spaceId, penaltyEndsAt);
+                });
 
         // The day's booking is counted over what still stands: one the university closed gave it
         // back, so it must not be the reason the student cannot book again (spec §12).
