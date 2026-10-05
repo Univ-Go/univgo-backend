@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.reservations.application.port.in.CreateReservationUseCase.CreateReservationCommand;
@@ -34,6 +37,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -218,6 +222,38 @@ class CreateReservationServiceTest {
         assertThat(result.getBlockEnd()).isEqualTo(BLOCK_END);
         assertThat(result.getCheckedInAt()).isNull();
         assertThat(result.getCancelledAt()).isNull();
+    }
+
+    @Test
+    void takesTheBlockLockBeforeCountingPlazasAndHoldsItThroughTheInsert() {
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(reservationRepositoryPort.findActiveByBlock(SPACE_ID, FUTURE_DATE, BLOCK_START, BLOCK_END))
+                .thenReturn(List.of());
+        when(reservationRepositoryPort.save(any(Reservation.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.execute(futureCommand);
+
+        InOrder inOrder = inOrder(reservationRepositoryPort);
+        inOrder.verify(reservationRepositoryPort).lockBlockForBooking(SPACE_ID, FUTURE_DATE, BLOCK_START);
+        inOrder.verify(reservationRepositoryPort).findActiveByBlock(SPACE_ID, FUTURE_DATE, BLOCK_START, BLOCK_END);
+        inOrder.verify(reservationRepositoryPort).save(any(Reservation.class));
+    }
+
+
+    @Test
+    void doesNotTakeTheBlockLockForRefusalsThatNeedNoCount() {
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of(closure(null)));
+
+        assertThatThrownBy(() -> service.execute(futureCommand)).isInstanceOf(SpaceClosedException.class);
+
+        verify(reservationRepositoryPort, never()).lockBlockForBooking(any(), any(), any());
     }
 
     private static Space space(int capacity) {

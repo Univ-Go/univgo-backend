@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CreateReservationService implements CreateReservationUseCase {
@@ -51,7 +52,13 @@ public class CreateReservationService implements CreateReservationUseCase {
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
     }
 
+    /**
+     the count, the check and the insert have to sit
+     inside the same transaction for the lock to still be held when the row lands.
+     for another user the differences are ms
+     */
     @Override
+    @Transactional
     public Reservation execute(CreateReservationCommand command) {
         UUID spaceId = command.spaceId();
         LocalDate date = command.reservationDate();
@@ -88,6 +95,11 @@ public class CreateReservationService implements CreateReservationUseCase {
         if (reservationRepositoryPort.existsOverlappingForUser(command.userId(), date, block.start(), block.end())) {
             throw new ReservationOverlapException();
         }
+
+        // Aforo is the one gate decided against a figure that other bookings move. Taken here and
+        // not earlier, so the cheap refusals above never make anybody queue; held to commit, so the
+        // last plaza cannot be counted free by two requests at once and sold twice.
+        reservationRepositoryPort.lockBlockForBooking(spaceId, date, block.start());
 
         long occupied = countOccupiedPlazas(spaceId, date, block, now, config, closures);
         if (occupied >= space.getCapacity()) {
