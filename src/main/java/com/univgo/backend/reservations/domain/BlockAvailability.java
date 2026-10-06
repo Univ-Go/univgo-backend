@@ -22,6 +22,8 @@ public record BlockAvailability(
         boolean closed,
         /** Why it is shut, so the student reads "cerrado por mantenimiento" and not a blank refusal. */
         ClosureReason closureReason,
+        /** The student may not book this space until then, for letting a reservation expire. Null when not penalized. */
+        LocalDateTime penalizedUntil,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 }

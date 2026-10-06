@@ -124,9 +124,24 @@ class BlockAvailabilityPolicyTest {
         assertThat(result.free()).isEqualTo(2);
     }
 
+    @Test
+    void penalizedStudentSeesTheBlockWithTheLiftTimeAndIsNotOffered() {
+        LocalDateTime now = LocalDateTime.of(DATE, LocalTime.of(9, 0));
+        LocalDateTime liftsAt = LocalDateTime.of(DATE.plusDays(1), LocalTime.of(14, 0));
+        AvailabilityContext context = new AvailabilityContext(
+                DATE, now, CONFIG, StudentDay.of(List.of()), BlockReservations.of(List.of()), SpaceClosures.none(), liftsAt);
+
+        BlockAvailability result = policy.evaluate(space(2), BLOCK, context);
+
+        assertThat(result.penalizedUntil()).isEqualTo(liftsAt);
+        assertThat(result.offered()).isFalse();
+        assertThat(result.free()).isEqualTo(2);
+    }
+
     private static AvailabilityContext contextAt(
             LocalDateTime now, List<Reservation> activeInSpace, StudentDay studentDay, SpaceClosures closures) {
-        return new AvailabilityContext(DATE, now, CONFIG, studentDay, BlockReservations.of(activeInSpace), closures);
+        return new AvailabilityContext(
+                DATE, now, CONFIG, studentDay, BlockReservations.of(activeInSpace), closures, null);
     }
 
     private static Space space(int capacity) {

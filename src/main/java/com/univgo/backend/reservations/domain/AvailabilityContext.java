@@ -11,4 +11,6 @@ public record AvailabilityContext(
         InstitutionConfig config,
         StudentDay studentDay,
         BlockReservations reservations,
-        SpaceClosures closures) {}
+        SpaceClosures closures,
+        /** Null when the student is not penalized for this space. */
+        LocalDateTime penalizedUntil) {}

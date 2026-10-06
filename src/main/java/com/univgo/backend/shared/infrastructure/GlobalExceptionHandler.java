@@ -15,6 +15,7 @@ import com.univgo.backend.reservations.domain.SpacePenalizedException;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,11 +48,21 @@ public class GlobalExceptionHandler {
         CancellationWindowClosedException.class,
         BlockCapacityFullException.class,
         BlockNoLongerBookableException.class,
-        SpaceAlreadyReservedTodayException.class,
-        SpacePenalizedException.class
+        SpaceAlreadyReservedTodayException.class
     })
     public ResponseEntity<Map<String, Object>> handleConflict(RuntimeException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(SpacePenalizedException.class)
+    public ResponseEntity<Map<String, Object>> handleSpacePenalized(SpacePenalizedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", Instant.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "code", "SPACE_PENALIZED",
+                "message", ex.getMessage(),
+                "spaceId", ex.getSpaceId().toString(),
+                "penalizedUntil", ex.getPenalizedUntil().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
     }
 
     private ResponseEntity<Map<String, Object>> build(HttpStatus status, String message) {

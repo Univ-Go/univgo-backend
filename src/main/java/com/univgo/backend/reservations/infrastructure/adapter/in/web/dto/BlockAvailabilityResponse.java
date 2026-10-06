@@ -16,6 +16,7 @@ public record BlockAvailabilityResponse(
         boolean overlapsUserReservation,
         boolean closed,
         ClosureReason closureReason,
+        LocalDateTime penalizedUntil,
         LocalDateTime previewCheckInOpensAt,
         LocalDateTime previewCheckInClosesAt) {
 
@@ -31,6 +32,7 @@ public record BlockAvailabilityResponse(
                 availability.overlapsUserReservation(),
                 availability.closed(),
                 availability.closureReason(),
+                availability.penalizedUntil(),
                 availability.previewCheckInOpensAt(),
                 availability.previewCheckInClosesAt());
     }

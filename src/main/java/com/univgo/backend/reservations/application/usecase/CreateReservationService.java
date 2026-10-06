@@ -17,6 +17,7 @@ import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException
 import com.univgo.backend.reservations.domain.ReservationStatusResolver;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
 import com.univgo.backend.reservations.domain.SpacePenalizedException;
+import com.univgo.backend.reservations.domain.SpacePenalty;
 import com.univgo.backend.shared.util.Uuidv7Generator;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
@@ -91,14 +92,13 @@ public class CreateReservationService implements CreateReservationUseCase {
         // from that block's start. Only genuine no-shows count: a block the university closed resolves
         // to suspended/closed, never expired, so it never penalizes.
         LocalDate penaltyWindowStart = now.minusHours(24).toLocalDate();
-        reservationRepositoryPort.findActiveByUserAndSpaceFromDate(command.userId(), spaceId, penaltyWindowStart).stream()
-                .filter(reservation -> ReservationStatusResolver.resolve(reservation, closures, now, config).state()
-                        == ReservationState.EXPIRED)
-                .map(Reservation::penaltyEndsAt)
-                .filter(now::isBefore)
-                .findFirst()
-                .ifPresent(penaltyEndsAt -> {
-                    throw new SpacePenalizedException(spaceId, penaltyEndsAt);
+        SpacePenalty.activeUntil(
+                        reservationRepositoryPort.findActiveByUserAndSpaceFromDate(command.userId(), spaceId, penaltyWindowStart),
+                        closures,
+                        now,
+                        config)
+                .ifPresent(penalizedUntil -> {
+                    throw new SpacePenalizedException(spaceId, penalizedUntil);
                 });
 
         // The day's booking is counted over what still stands: one the university closed gave it

@@ -8,6 +8,7 @@ import com.univgo.backend.reservations.domain.BlockAvailability;
 import com.univgo.backend.reservations.domain.BlockAvailabilityPolicy;
 import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
+import com.univgo.backend.reservations.domain.SpacePenalty;
 import com.univgo.backend.reservations.domain.StudentDay;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
@@ -68,7 +69,16 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
         StudentDay studentDay = StudentDay.of(reservationRepositoryPort.findActiveByUserAndDate(requestingUserId, date));
 
-        AvailabilityContext context = new AvailabilityContext(date, now, config, studentDay, reservations, closures);
+        LocalDateTime penalizedUntil = SpacePenalty.activeUntil(
+                        reservationRepositoryPort.findActiveByUserAndSpaceFromDate(
+                                requestingUserId, spaceId, now.minusHours(24).toLocalDate()),
+                        closures,
+                        now,
+                        config)
+                .orElse(null);
+
+        AvailabilityContext context =
+                new AvailabilityContext(date, now, config, studentDay, reservations, closures, penalizedUntil);
 
         return blocks.stream().map(block -> availabilityPolicy.evaluate(space, block, context)).toList();
     }

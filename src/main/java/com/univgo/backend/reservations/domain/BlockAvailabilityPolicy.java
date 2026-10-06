@@ -29,7 +29,8 @@ public final class BlockAvailabilityPolicy {
         Optional<SpaceClosure> closure =
                 context.closures().covering(space.getId(), context.date(), block.start(), block.end());
         boolean closed = closure.isPresent();
-        boolean offered = stillBookable && free > 0 && !alreadyReservedToday && !overlaps && !closed;
+        boolean penalized = context.penalizedUntil() != null;
+        boolean offered = stillBookable && free > 0 && !alreadyReservedToday && !overlaps && !closed && !penalized;
 
         LocalDateTime blockStartDateTime = LocalDateTime.of(context.date(), block.start());
         LocalDateTime blockEndDateTime = LocalDateTime.of(context.date(), block.end());
@@ -48,6 +49,7 @@ public final class BlockAvailabilityPolicy {
                 overlaps,
                 closed,
                 closure.map(SpaceClosure::getReason).orElse(null),
+                context.penalizedUntil(),
                 previewOpens,
                 previewCloses);
     }
