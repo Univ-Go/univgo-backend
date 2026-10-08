@@ -23,8 +23,8 @@ class AforoExcelWriterTest {
     void namesTheFileAfterTheSpaceWithoutAccentsAndTheDay() {
         AforoReport report = new AforoReport("Sala de Estudio Nº 2", LocalDate.of(2026, 9, 23), List.of());
 
-        assertThat(AforoExcelWriter.fileName(report))
-                .matches("aforo_sala-de-estudio-n-2_2026-09-23_\\d{8}-\\d{6}\\.xlsx");
+        assertThat(AforoExcelWriter.fileName(report, LocalDateTime.of(2026, 10, 7, 14, 30, 15)))
+                .isEqualTo("aforo_sala-de-estudio-n-2_2026-09-23_20261007-143015.xlsx");
     }
 
     @Test

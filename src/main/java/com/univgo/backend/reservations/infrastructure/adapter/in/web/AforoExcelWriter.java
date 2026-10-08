@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 import org.apache.poi.ss.usermodel.BorderStyle;
@@ -68,18 +69,18 @@ final class AforoExcelWriter {
      * {@code aforo_sala-estudio-2_2026-09-23_20261007-143015.xlsx}: the download's own date and time
      * at the end, so no two exports share a name. No ':' anywhere — Windows forbids it.
      */
-    static String fileName(AforoReport report) {
+    static String fileName(AforoReport report, LocalDateTime now) {
         return "aforo_" + slug(report.spaceName()) + "_" + report.date()
-                + "_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".xlsx";
+                + "_" + now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")) + ".xlsx";
     }
 
     /** "Sala Estudio 2" → "sala-estudio-2"; accents dropped so the name survives any file system. */
     private static String slug(String name) {
         return Normalizer.normalize(name, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
-                .toLowerCase()
+                .toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-|-$", "");
+                .replaceAll("(?:^-)|(?:-$)", "");
     }
 
     private static void writeSummary(Sheet sheet, AforoReport report, Styles styles) {
