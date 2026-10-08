@@ -43,6 +43,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
+    // --- Reportes Excel ---
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
+
     // --- Mapeo entre capas (domain <-> dto/entity, encaja con puertos hexagonal) ---
     implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
