@@ -85,7 +85,7 @@ public class CheckInReservationService implements CheckInReservationUseCase {
     }
 
     private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now, InstitutionConfig config) {
-        LocalDateTime opensAt = reservation.checkInOpensAt(config.tolerance());
+        LocalDateTime opensAt = reservation.checkInOpensAt();
         if (now.isBefore(opensAt)) {
             return CheckInResult.tooEarly(opensAt);
         }

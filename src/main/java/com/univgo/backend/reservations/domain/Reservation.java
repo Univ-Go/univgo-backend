@@ -83,8 +83,8 @@ public class Reservation {
         this.checkedInAt = now;
     }
 
-    public LocalDateTime checkInOpensAt(Duration tolerance) {
-        return ReservationTimingCalculator.checkInOpensAt(blockStartDateTime(), createdAt, tolerance);
+    public LocalDateTime checkInOpensAt() {
+        return ReservationTimingCalculator.checkInOpensAt(blockStartDateTime(), createdAt);
     }
 
     public LocalDateTime checkInClosesAt(Duration tolerance, Duration minUsage) {
