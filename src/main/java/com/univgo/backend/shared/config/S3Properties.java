@@ -4,8 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Credentials and bucket for the S3-compatible object storage that holds space photographs.
- * Photographs are uploaded to the bucket by hand — there is no upload endpoint — so this only
- * needs enough to list a space's keys and sign them for reading.
+ * The admin CRUD uploads through the application, so this needs enough to write a key, delete one
+ * and sign one for reading. Which photographs a space has is a question for {@code space_images},
+ * not for the bucket.
  *
  * @param endpoint         S3-compatible endpoint; the bucket is not AWS, so this must be explicit.
  * @param region           region the bucket reports itself in.
