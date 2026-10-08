@@ -9,14 +9,15 @@ import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.ReservationTimingCalculator;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
+import com.univgo.backend.spaces.application.port.in.GetSpaceImagesUseCase;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
-import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import com.univgo.backend.spaces.domain.SpaceImageView;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
@@ -45,7 +46,7 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
-    private final SpaceImageRepositoryPort spaceImageRepositoryPort;
+    private final GetSpaceImagesUseCase getSpaceImagesUseCase;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
@@ -53,13 +54,13 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             SpaceClosureRepositoryPort spaceClosureRepositoryPort,
-            SpaceImageRepositoryPort spaceImageRepositoryPort) {
+            GetSpaceImagesUseCase getSpaceImagesUseCase) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
-        this.spaceImageRepositoryPort = spaceImageRepositoryPort;
+        this.getSpaceImagesUseCase = getSpaceImagesUseCase;
     }
 
     @Override
@@ -76,16 +77,18 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
         // One query for every space's closures, like the schedules and the reservations above: the
         // catalog reads the whole campus, so asking space by space is where the seconds went.
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
-        Map<UUID, List<String>> images = spaceImageRepositoryPort.findAllImageUrls();
+        Map<UUID, List<SpaceImageView>> images = getSpaceImagesUseCase.allBySpace();
 
-        return spaceRepositoryPort.findAll().stream()
-                .map(space -> toCatalogItem(space, date, now, config, schedules, reservations, closures, images))
+        return spaceRepositoryPort.findAllActive().stream()
+                .map(space -> toCatalogItem(
+                        space, date, now, config, schedules, reservations, closures, images, false))
                 .toList();
     }
 
     @Override
     public SpaceCatalogItem execute(UUID spaceId, LocalDate date) {
         Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
+        boolean archived = spaceRepositoryPort.findActiveById(spaceId).isEmpty();
 
         Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
                 .findByDayOfWeek(date.getDayOfWeek().getValue())
@@ -100,7 +103,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 schedules,
                 BlockReservations.of(reservationRepositoryPort.findActiveByDate(date)),
                 SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce()),
-                spaceImageRepositoryPort.findAllImageUrls());
+                Map.of(space.getId(), getSpaceImagesUseCase.ofSpace(spaceId)),
+                archived);
     }
 
     private SpaceCatalogItem toCatalogItem(
@@ -111,7 +115,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
             Map<UUID, List<SpaceSchedule>> schedules,
             BlockReservations reservations,
             SpaceClosures closures,
-            Map<UUID, List<String>> images) {
+            Map<UUID, List<SpaceImageView>> images,
+            boolean archived) {
         List<TimeBlock> blocks = BlockGenerator.generate(
                 schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
 
@@ -133,7 +138,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 freeBlockStarts(blocks, space, date, now, config, reservations, closures),
                 images.getOrDefault(space.getId(), List.of()),
                 space.getDescription(),
-                space.getRules());
+                space.getRules(),
+                archived);
     }
 
     /**
