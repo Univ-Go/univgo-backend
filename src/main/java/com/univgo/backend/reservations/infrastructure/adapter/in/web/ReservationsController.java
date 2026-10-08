@@ -16,6 +16,7 @@ import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.Reserva
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReservationsController {
 
     private static final String ADMIN_AUTHORITY = "ROLE_ADMIN";
+    private static final int MAX_CREATE_ATTEMPTS = 3;
 
     private final CreateReservationUseCase createReservationUseCase;
     private final GetReservationsByUserUseCase getReservationsByUserUseCase;
@@ -57,7 +59,23 @@ public class ReservationsController {
     public ReservationResponse create(@Valid @RequestBody CreateReservationRequest request, Authentication authentication) {
         var command = new CreateReservationCommand(
                 currentUserId(authentication), request.spaceId(), request.reservationDate(), request.startTime());
-        return toResponse(createReservationUseCase.execute(command));
+        return toResponse(createWithRetry(command));
+    }
+
+    // Two bookings can draw the same confirmation code in the same instant; the unique index refuses
+    // the second and its transaction (aforo lock included) is gone. So the retry has to start a fresh
+    // booking from out here, which re-runs every check. The student just waits a few ms longer.
+    // ponytail: retries any integrity violation, not only the code index; others fail again and surface.
+    private Reservation createWithRetry(CreateReservationCommand command) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                return createReservationUseCase.execute(command);
+            } catch (DataIntegrityViolationException e) {
+                if (attempt == MAX_CREATE_ATTEMPTS) {
+                    throw e;
+                }
+            }
+        }
     }
 
     /** One read of the closures for the whole list: a student's reservations span several spaces. */

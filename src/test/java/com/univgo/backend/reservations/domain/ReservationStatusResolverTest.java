@@ -123,6 +123,7 @@ class ReservationStatusResolverTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 DAY,

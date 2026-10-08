@@ -188,6 +188,7 @@ class GetSpaceAvailabilityServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 userId,
                 SPACE_ID,
                 FUTURE_DATE,

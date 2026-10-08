@@ -10,12 +10,16 @@ import com.univgo.backend.reservations.domain.ReservationState;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CheckInReservationService implements CheckInReservationUseCase {
+
+    private static final Pattern CONFIRMATION_CODE = Pattern.compile("\\d{6}");
 
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
@@ -35,7 +39,7 @@ public class CheckInReservationService implements CheckInReservationUseCase {
 
     @Override
     public CheckInResult execute(CheckInCommand command) {
-        Optional<Reservation> maybeReservation = reservationRepositoryPort.findByQrCodeData(command.code());
+        Optional<Reservation> maybeReservation = findByCode(command.code());
         if (maybeReservation.isEmpty()) {
             return CheckInResult.notExists();
         }
@@ -82,6 +86,16 @@ public class CheckInReservationService implements CheckInReservationUseCase {
             case SUSPENDED -> CheckInResult.spaceClosed();
             case RESERVED -> checkInIfWindowIsOpen(reservation, now, config);
         };
+    }
+
+    // The QR carries the UUID; when it does not scan, the admin types the 6-digit code instead, in the
+    // same field. A UUID never matches six digits, so the shape alone says which one it is. The typed
+    // code is only unique within a day, and the door only ever checks today's bookings.
+    private Optional<Reservation> findByCode(String code) {
+        if (CONFIRMATION_CODE.matcher(code).matches()) {
+            return reservationRepositoryPort.findActiveByConfirmationCode(LocalDate.now(), code);
+        }
+        return reservationRepositoryPort.findByQrCodeData(code);
     }
 
     private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now, InstitutionConfig config) {

@@ -5,6 +5,7 @@ import com.univgo.backend.reservations.application.port.out.InstitutionConfigRep
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.BlockCapacityFullException;
 import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
+import com.univgo.backend.reservations.domain.ConfirmationCodeGenerator;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.Reservation;
@@ -109,6 +110,7 @@ public class CreateReservationService implements CreateReservationUseCase {
         Reservation reservation = new Reservation(
                 Uuidv7Generator.generate(),
                 UUID.randomUUID().toString(),
+                freeConfirmationCode(date),
                 command.userId(),
                 spaceId,
                 date,
@@ -120,6 +122,16 @@ public class CreateReservationService implements CreateReservationUseCase {
                 null);
 
         return reservationRepositoryPort.save(reservation);
+    }
+
+    // Checking first keeps the unique index from ever firing in practice. Two bookings drawing the same
+    // code in the same instant still can; the index refuses the second and the controller retries it.
+    private String freeConfirmationCode(LocalDate date) {
+        String code;
+        do {
+            code = ConfirmationCodeGenerator.generate();
+        } while (reservationRepositoryPort.existsActiveConfirmationCode(date, code));
+        return code;
     }
 
     private TimeBlock findRequestedBlock(CreateReservationCommand command, InstitutionConfig config) {
