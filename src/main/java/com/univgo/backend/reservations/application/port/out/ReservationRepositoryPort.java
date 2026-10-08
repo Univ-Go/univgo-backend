@@ -38,4 +38,7 @@ public interface ReservationRepositoryPort {
     List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date);
 
     List<Reservation> findActiveBySpaceId(UUID spaceId);
+
+    /** Cancelled ones included: the aforo report counts them. */
+    List<Reservation> findBySpaceAndDate(UUID spaceId, LocalDate date);
 }

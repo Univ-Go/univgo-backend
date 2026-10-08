@@ -69,4 +69,6 @@ public interface ReservationJpaRepository extends JpaRepository<ReservationJpaEn
     Optional<ReservationJpaEntity> findByQrCodeData(String qrCodeData);
 
     List<ReservationJpaEntity> findBySpaceIdAndCancelledAtIsNull(UUID spaceId);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDate(UUID spaceId, LocalDate reservationDate);
 }
