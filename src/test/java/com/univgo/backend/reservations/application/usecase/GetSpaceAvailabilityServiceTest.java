@@ -68,7 +68,7 @@ class GetSpaceAvailabilityServiceTest {
                 SpaceCategory.SPORTS,
                 "Sala de musculación y cardio",
                 List.of());
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -97,7 +97,7 @@ class GetSpaceAvailabilityServiceTest {
                 SpaceCategory.SPORTS,
                 "Sala de musculación y cardio",
                 List.of());
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -122,7 +122,7 @@ class GetSpaceAvailabilityServiceTest {
                 SpaceCategory.SPORTS,
                 "Sala de musculación y cardio",
                 List.of());
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -150,7 +150,7 @@ class GetSpaceAvailabilityServiceTest {
                 SpaceCategory.SPORTS,
                 "Sala de musculación y cardio",
                 List.of());
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
