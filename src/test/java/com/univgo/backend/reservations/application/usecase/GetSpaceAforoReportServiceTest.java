@@ -111,6 +111,7 @@ class GetSpaceAforoReportServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                "123456",
                 STUDENT_ID,
                 SPACE_ID,
                 PAST_DATE,

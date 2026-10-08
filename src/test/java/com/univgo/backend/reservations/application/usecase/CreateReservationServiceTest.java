@@ -114,7 +114,7 @@ class CreateReservationServiceTest {
 
     @Test
     void drawsAnotherConfirmationCodeWhenTheFirstIsTakenThatDay() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
