@@ -47,6 +47,18 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public Optional<Reservation> findActiveByConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository
+                .findByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode)
+                .map(ReservationPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public boolean existsActiveConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository.existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode);
+    }
+
+    @Override
     public Reservation save(Reservation reservation) {
         var saved = reservationJpaRepository.save(ReservationPersistenceMapper.toEntity(reservation));
         return ReservationPersistenceMapper.toDomain(saved);

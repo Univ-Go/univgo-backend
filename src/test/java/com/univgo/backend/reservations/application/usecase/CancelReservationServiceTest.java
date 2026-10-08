@@ -102,6 +102,7 @@ class CancelReservationServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 ownerId,
                 UUID.randomUUID(),
                 FUTURE_DATE,

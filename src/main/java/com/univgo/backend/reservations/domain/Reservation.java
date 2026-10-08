@@ -16,6 +16,7 @@ public class Reservation {
 
     private final UUID id;
     private final String qrCodeData;
+    private final String confirmationCode;
     private final UUID userId;
     private final UUID spaceId;
     private final LocalDate reservationDate;
@@ -29,6 +30,7 @@ public class Reservation {
     public Reservation(
             UUID id,
             String qrCodeData,
+            String confirmationCode,
             UUID userId,
             UUID spaceId,
             LocalDate reservationDate,
@@ -43,6 +45,7 @@ public class Reservation {
         }
         this.id = id;
         this.qrCodeData = qrCodeData;
+        this.confirmationCode = confirmationCode;
         this.userId = userId;
         this.spaceId = spaceId;
         this.reservationDate = reservationDate;
@@ -105,6 +108,10 @@ public class Reservation {
 
     public String getQrCodeData() {
         return qrCodeData;
+    }
+
+    public String getConfirmationCode() {
+        return confirmationCode;
     }
 
     public UUID getUserId() {

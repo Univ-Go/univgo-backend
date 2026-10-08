@@ -16,6 +16,7 @@ import java.util.UUID;
 public record ReservationResponse(
         UUID id,
         String qrCodeData,
+        String confirmationCode,
         UUID userId,
         UUID spaceId,
         LocalDate reservationDate,
@@ -47,6 +48,7 @@ public record ReservationResponse(
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getQrCodeData(),
+                reservation.getConfirmationCode(),
                 reservation.getUserId(),
                 reservation.getSpaceId(),
                 reservation.getReservationDate(),

@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -110,11 +112,29 @@ class CreateReservationServiceTest {
         assertThat(service.execute(futureCommand).getBlockStart()).isEqualTo(BLOCK_START);
     }
 
+    @Test
+    void drawsAnotherConfirmationCodeWhenTheFirstIsTakenThatDay() {
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(reservationRepositoryPort.existsActiveConfirmationCode(eq(FUTURE_DATE), any()))
+                .thenReturn(true)
+                .thenReturn(false);
+        when(reservationRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Reservation saved = service.execute(futureCommand);
+
+        assertThat(saved.getConfirmationCode()).matches("\\d{6}");
+        verify(reservationRepositoryPort, times(2)).existsActiveConfirmationCode(eq(FUTURE_DATE), any());
+    }
+
     /** The day's booking, held for a block of this same space that is not the one being asked for. */
     private static Reservation sameSpaceEarlierBlock() {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 FUTURE_DATE,
@@ -276,6 +296,7 @@ class CreateReservationServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 SPACE_ID,
                 FUTURE_DATE,

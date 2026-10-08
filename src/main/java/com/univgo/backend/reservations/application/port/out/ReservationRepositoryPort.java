@@ -17,6 +17,11 @@ public interface ReservationRepositoryPort {
 
     Optional<Reservation> findByQrCodeData(String qrCodeData);
 
+    /** Codes are unique per day among reservations that still stand; cancelled ones gave theirs back. */
+    Optional<Reservation> findActiveByConfirmationCode(LocalDate date, String confirmationCode);
+
+    boolean existsActiveConfirmationCode(LocalDate date, String confirmationCode);
+
     Reservation save(Reservation reservation);
 
     boolean existsOverlappingForUser(UUID userId, LocalDate date, LocalTime startTime, LocalTime endTime);

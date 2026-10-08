@@ -243,6 +243,7 @@ class GetSpaceCatalogServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 SPACE_ID,
                 FUTURE_DATE,

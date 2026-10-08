@@ -100,6 +100,7 @@ class ReservationTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 DATE,
