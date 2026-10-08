@@ -74,4 +74,6 @@ public interface ReservationJpaRepository extends JpaRepository<ReservationJpaEn
     boolean existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(LocalDate reservationDate, String confirmationCode);
 
     List<ReservationJpaEntity> findBySpaceIdAndCancelledAtIsNull(UUID spaceId);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDate(UUID spaceId, LocalDate reservationDate);
 }

@@ -3,6 +3,7 @@ package com.univgo.backend.shared.config;
 import com.univgo.backend.auth.infrastructure.adapter.out.security.JwtAuthenticationFilter;
 import com.univgo.backend.shared.infrastructure.RestAccessDeniedHandler;
 import com.univgo.backend.shared.infrastructure.RestAuthenticationEntryPoint;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,6 +57,11 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                        // A streamed response (the aforo Excel export) finishes on an async dispatch.
+                        // The JWT filter runs once per request and is skipped there, so without this
+                        // the dispatch reads as anonymous and is refused mid-download. Safe: an async
+                        // dispatch only exists for a request that already passed authorization.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -70,6 +76,8 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("Content-Type", "Authorization"));
         // Without this the browser drops the session cookie on every cross-origin call.
         configuration.setAllowCredentials(true);
+        // Lets the frontend read the export's file name; browsers hide this header cross-origin otherwise.
+        configuration.setExposedHeaders(List.of("Content-Disposition"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

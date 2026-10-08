@@ -116,4 +116,9 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
                 .map(ReservationPersistenceMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<Reservation> findBySpaceAndDate(UUID spaceId, LocalDate date) {
+        return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDate(spaceId, date));
+    }
 }
