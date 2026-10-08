@@ -1,6 +1,8 @@
 package com.univgo.backend.reservations.infrastructure.adapter.in.web;
 
 import com.univgo.backend.reservations.application.port.in.CancelSpaceReservationsUseCase;
+import com.univgo.backend.reservations.application.port.in.GetSpaceAforoReportUseCase;
+import com.univgo.backend.reservations.application.port.in.GetSpaceAforoReportUseCase.AforoReport;
 import com.univgo.backend.reservations.application.port.in.GetSpaceBlockDetailUseCase;
 import com.univgo.backend.reservations.application.port.in.GetSpaceDayBlocksUseCase;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.CancelSpaceReservationsResponse;
@@ -15,11 +17,15 @@ import com.univgo.backend.spaces.application.port.in.GetSpaceClosuresUseCase;
 import com.univgo.backend.spaces.application.port.in.RevertSpaceClosureUseCase;
 import com.univgo.backend.spaces.application.port.in.SetSpaceMaintenanceUseCase;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequestMapping("/admin/spaces")
@@ -44,6 +51,7 @@ public class AdminSpacesController {
     private final CloseSpaceUseCase closeSpaceUseCase;
     private final RevertSpaceClosureUseCase revertSpaceClosureUseCase;
     private final GetSpaceClosuresUseCase getSpaceClosuresUseCase;
+    private final GetSpaceAforoReportUseCase getSpaceAforoReportUseCase;
 
     public AdminSpacesController(
             GetSpaceDayBlocksUseCase getSpaceDayBlocksUseCase,
@@ -52,7 +60,8 @@ public class AdminSpacesController {
             CancelSpaceReservationsUseCase cancelSpaceReservationsUseCase,
             CloseSpaceUseCase closeSpaceUseCase,
             RevertSpaceClosureUseCase revertSpaceClosureUseCase,
-            GetSpaceClosuresUseCase getSpaceClosuresUseCase) {
+            GetSpaceClosuresUseCase getSpaceClosuresUseCase,
+            GetSpaceAforoReportUseCase getSpaceAforoReportUseCase) {
         this.getSpaceDayBlocksUseCase = getSpaceDayBlocksUseCase;
         this.getSpaceBlockDetailUseCase = getSpaceBlockDetailUseCase;
         this.setSpaceMaintenanceUseCase = setSpaceMaintenanceUseCase;
@@ -60,12 +69,31 @@ public class AdminSpacesController {
         this.closeSpaceUseCase = closeSpaceUseCase;
         this.revertSpaceClosureUseCase = revertSpaceClosureUseCase;
         this.getSpaceClosuresUseCase = getSpaceClosuresUseCase;
+        this.getSpaceAforoReportUseCase = getSpaceAforoReportUseCase;
     }
 
     @GetMapping("/{spaceId}/blocks")
     public List<SpaceBlockSummaryResponse> blocks(
             @PathVariable UUID spaceId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return getSpaceDayBlocksUseCase.execute(spaceId, date).stream().map(SpaceBlockSummaryResponse::from).toList();
+    }
+
+    /**
+     * The report is built here, before the response starts, so a bad date or unknown space is still a
+     * plain 400/404; only writing the workbook runs asynchronously, off the request thread.
+     */
+    @GetMapping("/{spaceId}/blocks/export")
+    public ResponseEntity<StreamingResponseBody> exportBlocks(
+            @PathVariable UUID spaceId, @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        AforoReport report = getSpaceAforoReportUseCase.execute(spaceId, date);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(AforoExcelWriter.fileName(report), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .body(out -> AforoExcelWriter.write(report, out));
     }
 
     @GetMapping("/{spaceId}/blocks/{blockStart}")
