@@ -98,8 +98,6 @@ public class CheckInReservationService implements CheckInReservationUseCase {
         return reservationRepositoryPort.findByQrCodeData(code);
     }
 
-    private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now, InstitutionConfig config) {
-        LocalDateTime opensAt = reservation.checkInOpensAt(config.tolerance());
     private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now) {
         LocalDateTime opensAt = reservation.checkInOpensAt();
         if (now.isBefore(opensAt)) {
