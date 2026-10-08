@@ -18,6 +18,7 @@ import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,6 +40,7 @@ public class GetSpaceAforoReportService implements GetSpaceAforoReportUseCase {
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
+    private final Clock clock;
 
     public GetSpaceAforoReportService(
             GetSpaceDayBlocksUseCase getSpaceDayBlocksUseCase,
@@ -46,13 +48,15 @@ public class GetSpaceAforoReportService implements GetSpaceAforoReportUseCase {
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             SpaceClosureRepositoryPort spaceClosureRepositoryPort,
-            UserRepositoryPort userRepositoryPort) {
+            UserRepositoryPort userRepositoryPort,
+            Clock clock) {
         this.getSpaceDayBlocksUseCase = getSpaceDayBlocksUseCase;
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -60,7 +64,7 @@ public class GetSpaceAforoReportService implements GetSpaceAforoReportUseCase {
         Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         BlockReservations day = BlockReservations.of(reservationRepositoryPort.findBySpaceAndDate(spaceId, date));
 
         List<BlockAforoRow> rows = getSpaceDayBlocksUseCase.execute(spaceId, date).stream()

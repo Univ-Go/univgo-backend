@@ -19,6 +19,7 @@ import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -26,9 +27,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -53,8 +54,19 @@ class GetSpaceAforoReportServiceTest {
     @Mock
     private UserRepositoryPort userRepositoryPort;
 
-    @InjectMocks
     private GetSpaceAforoReportService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new GetSpaceAforoReportService(
+                getSpaceDayBlocksUseCase,
+                spaceRepositoryPort,
+                reservationRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                userRepositoryPort,
+                Clock.systemDefaultZone());
+    }
 
     private static final UUID SPACE_ID = UUID.randomUUID();
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
