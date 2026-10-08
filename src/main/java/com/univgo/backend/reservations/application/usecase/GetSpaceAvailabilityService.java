@@ -108,7 +108,7 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
 
         LocalDateTime blockStartDateTime = LocalDateTime.of(date, block.start());
         LocalDateTime blockEndDateTime = LocalDateTime.of(date, block.end());
-        LocalDateTime previewOpens = ReservationTimingCalculator.checkInOpensAt(blockStartDateTime, now, config.tolerance());
+        LocalDateTime previewOpens = ReservationTimingCalculator.checkInOpensAt(blockStartDateTime, now);
         LocalDateTime previewCloses = ReservationTimingCalculator.checkInClosesAt(
                 blockStartDateTime, blockEndDateTime, now, config.tolerance(), config.minUsage());
 

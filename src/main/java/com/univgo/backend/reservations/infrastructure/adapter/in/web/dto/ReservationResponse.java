@@ -58,7 +58,7 @@ public record ReservationResponse(
                 reservation.getCancelledAt(),
                 status.cancelledBy(),
                 status.closureReason(),
-                reservation.checkInOpensAt(config.tolerance()),
+                reservation.checkInOpensAt(),
                 reservation.checkInClosesAt(config.tolerance(), config.minUsage()),
                 cancellationDeadline,
                 status.state() == ReservationState.RESERVED && !now.isAfter(cancellationDeadline));
