@@ -84,7 +84,7 @@ public class CheckInReservationService implements CheckInReservationUseCase {
             // Unreachable: the closure check above already answered, and it is the only thing that
             // suspends. Stated rather than defaulted, so a seventh state cannot slip through here.
             case SUSPENDED -> CheckInResult.spaceClosed();
-            case RESERVED -> checkInIfWindowIsOpen(reservation, now, config);
+            case RESERVED -> checkInIfWindowIsOpen(reservation, now);
         };
     }
 
@@ -100,6 +100,8 @@ public class CheckInReservationService implements CheckInReservationUseCase {
 
     private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now, InstitutionConfig config) {
         LocalDateTime opensAt = reservation.checkInOpensAt(config.tolerance());
+    private CheckInResult checkInIfWindowIsOpen(Reservation reservation, LocalDateTime now) {
+        LocalDateTime opensAt = reservation.checkInOpensAt();
         if (now.isBefore(opensAt)) {
             return CheckInResult.tooEarly(opensAt);
         }
