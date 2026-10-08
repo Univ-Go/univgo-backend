@@ -48,7 +48,7 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
 
     @Override
     public List<BlockAvailability> execute(UUID spaceId, LocalDate date, UUID requestingUserId) {
-        Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
+        Space space = spaceRepositoryPort.findActiveById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
         int dayOfWeek = date.getDayOfWeek().getValue();

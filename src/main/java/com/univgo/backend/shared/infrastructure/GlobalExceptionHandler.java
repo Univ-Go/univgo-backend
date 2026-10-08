@@ -11,7 +11,13 @@ import com.univgo.backend.reservations.domain.ReservationNotFoundException;
 import com.univgo.backend.reservations.domain.ReservationOverlapException;
 import com.univgo.backend.reservations.domain.SpaceAlreadyReservedTodayException;
 import com.univgo.backend.reservations.domain.SpaceClosedException;
+import com.univgo.backend.spaces.domain.LastImageException;
+import com.univgo.backend.spaces.domain.OverlappingScheduleException;
+import com.univgo.backend.spaces.domain.SpaceImageNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import com.univgo.backend.spaces.domain.SpaceTypeNotFoundException;
+import com.univgo.backend.spaces.domain.TooManyImagesException;
+import com.univgo.backend.spaces.domain.UnreadableImageException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
 import java.util.Map;
@@ -23,7 +29,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({UserNotFoundException.class, ReservationNotFoundException.class, SpaceNotFoundException.class})
+    @ExceptionHandler({
+        UserNotFoundException.class,
+        ReservationNotFoundException.class,
+        SpaceNotFoundException.class,
+        SpaceImageNotFoundException.class
+    })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
@@ -33,7 +44,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler({
+        IllegalArgumentException.class,
+        UnreadableImageException.class,
+        SpaceTypeNotFoundException.class
+    })
     public ResponseEntity<Map<String, Object>> handleBadRequest(RuntimeException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
@@ -46,7 +61,10 @@ public class GlobalExceptionHandler {
         CancellationWindowClosedException.class,
         BlockCapacityFullException.class,
         BlockNoLongerBookableException.class,
-        SpaceAlreadyReservedTodayException.class
+        SpaceAlreadyReservedTodayException.class,
+        OverlappingScheduleException.class,
+        TooManyImagesException.class,
+        LastImageException.class
     })
     public ResponseEntity<Map<String, Object>> handleConflict(RuntimeException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());

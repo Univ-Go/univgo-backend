@@ -13,6 +13,13 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+  servlet:
+    multipart:
+      # Boot defaults to 1MB per file, which rejects every photo a phone takes. The threshold
+      # spills a part to disk instead of holding the whole request in heap.
+      max-file-size: 6MB
+      max-request-size: 50MB
+      file-size-threshold: 512KB
 
 server:
   port: ${PORT:3000}
@@ -46,3 +53,15 @@ aws:
     access-key-id: ${AWS_ACCESS_KEY_ID}
     secret-access-key: ${AWS_SECRET_ACCESS_KEY}
     bucket: ${AWS_S3_BUCKET}
+
+univgo:
+  spaces:
+    images:
+      # Mirrors `images.sizes` in the frontend's vercel.json: the derivatives are what the browser
+      # asks for, so the two lists have to stay in step.
+      widths: [640, 960]
+      max-per-space: 8
+      # A 12 MP JPEG decodes to roughly 48 MB of BufferedImage, so a handful decoded at once
+      # exhausts a small instance. Oversized sources are rejected before any decode.
+      max-pixels: 24000000
+      jpeg-quality: 0.82

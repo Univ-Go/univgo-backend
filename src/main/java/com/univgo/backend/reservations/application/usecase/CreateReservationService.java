@@ -64,7 +64,7 @@ public class CreateReservationService implements CreateReservationUseCase {
         UUID spaceId = command.spaceId();
         LocalDate date = command.reservationDate();
 
-        Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
+        Space space = spaceRepositoryPort.findActiveById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
 

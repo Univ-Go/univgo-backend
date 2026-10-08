@@ -27,7 +27,12 @@ The JDBC URL needs `?stringtype=unspecified` because several columns are native 
 
 ## Database
 
-`spring.jpa.hibernate.ddl-auto: validate` — Hibernate never creates or alters anything. **Flyway migrations in `src/main/resources/db/migration/` are the only schema source of truth.** Existing `V1`–`V9` files are history: never edit them, add `V10__…sql`. They run automatically at startup.
+`spring.jpa.hibernate.ddl-auto: validate` — Hibernate never creates or alters anything. **Flyway migrations in `src/main/resources/db/migration/` are the only schema source of truth.** Existing files are history: never edit them, add the next version. They run automatically at startup. The verified state of the database lives in the **frontend** repo at `docs/database.md`, and a migration is not finished until that file reflects it.
+
+Two things about spaces that are not obvious from the entities:
+
+- **A space is never deleted, only archived** (`spaces.archived_at`, `V19`). `reservations.space_id` has no cascade, and the reservations are history. `SpaceRepositoryPort` is where the filter lives: `findAllActive`/`findActiveById`/`existsActiveById` exclude archived spaces, while plain `findById` deliberately does not — a student holding a reservation for a space that was just retired still opens its detail. Archiving also opens an indefinite closure so those reservations read as *suspended* (spec §12) rather than vanishing.
+- **A space's photographs are rows** (`space_images`, `V19`), not whatever the bucket happens to contain. `position` is the order and `0` is the cover; there is no cover flag. One upload is derived into one JPEG per width in `univgo.spaces.images.widths`, stored under `spaces/{spaceId}/{imageId}/{width}.jpg`. The JDK has no WebP codec, so uploads are JPEG or PNG and derivatives are JPEG. `spaces.under_maintenance` is still orphaned and still waiting for its own migration.
 
 `src/main/resources/db/seed/seed_gym_data.sql` lives outside `db/migration` on purpose — demo data, applied by hand with `psql`.
 
@@ -50,8 +55,10 @@ Conventions that the code follows consistently:
 
 - **Domain classes are hand-written POJOs** — no Lombok, no JPA annotations, no setters beyond intentional mutators (`Reservation.cancel`, `checkIn`). JPA entities are separate classes with a `protected` no-arg constructor.
 - **Mapping is a package-private final class with static `toDomain`/`toEntity`** (`ReservationPersistenceMapper`). MapStruct and Lombok are on the classpath but effectively unused — don't introduce them into new code without a reason.
-- **Constructor injection, no field injection.** `@Transactional` appears in exactly two places: the refresh-token adapter's delete queries, and `CreateReservationService`, which needs it to hold its aforo lock (below). Don't add a third without the same kind of reason.
-- The `spaces` module has **no web adapter**. Space-facing HTTP endpoints (`SpacesController`, `AdminSpacesController`) live in `reservations` and call `spaces`' out-ports directly; `spaces` owns `Space`, `SpaceSchedule`, `BlockGenerator`.
+- **Constructor injection, no field injection.** `@Transactional` is for a change that is only correct whole: the refresh-token adapter's delete queries, `CreateReservationService` holding its aforo lock (below), and the space CRUD's multi-table writes — creating a space (row + windows + photographs + stored bytes), replacing a week (delete then insert), reordering photographs (which passes through a duplicate position that only a deferred constraint tolerates) and archiving (row + closure). Don't add one without that kind of reason.
+- The `spaces` module **now has a web adapter**, and only for managing the catalogue: `AdminSpaceCrudController` and `AdminSpaceTypesController` in `spaces/infrastructure/adapter/in/web`. The split is by subject, not by URL — writing a space's description, hours and photographs is not a question about reservations. The **catalogue-facing** endpoints (`SpacesController`, `AdminSpacesController`, which answer availability, blocks and closures) stay in `reservations` and keep calling `spaces`' out-ports directly. Both sets share the `/admin/spaces` base path, which Spring allows because the patterns differ.
+- `spaces` must never import `reservations`. Where it needs something from there — the count of reservations archiving would suspend — the port is declared in `spaces/application/port/out` (`SpaceReservationCounterPort`) and fulfilled by `reservations` (`SpaceReservationCounter`). The consumer owns the port.
+- The application layer **never imports `shared.config`**; that is an infrastructure-only import. A tunable reaches a use case through an out-port (`InstitutionConfigRepositoryPort`, `SpaceImageLimitsPort`).
 
 ## The reservation model (read this before touching `reservations`)
 
@@ -73,7 +80,7 @@ Admin surface is guarded by `@PreAuthorize("hasRole('ADMIN')")` at class level o
 
 Refresh tokens are stored hashed (SHA-256, `TokenHasher`) and purged nightly by `RefreshTokenCleanupJob`.
 
-Current routes: `/auth/{login,refresh,logout}`, `/users`, `/reservations` (`POST`, `/me`, `/{id}`, `/{id}/cancel`), `/spaces` (`GET`, `/{id}/availability`), `/admin/reservations`, `/admin/spaces/**`, `/admin/checkin/scan`, `/admin/institution-config`. The README's endpoint table predates the rewrite and is stale.
+Current routes: `/auth/{login,refresh,logout}`, `/users`, `/reservations` (`POST`, `/me`, `/{id}`, `/{id}/cancel`), `/spaces` (`GET`, `/{id}`, `/{id}/availability`), `/admin/reservations`, `/admin/spaces/**`, `/admin/space-types`, `/admin/checkin/scan`, `/admin/institution-config`. The README's endpoint table predates the rewrite and is stale.
 
 ## Errors
 
