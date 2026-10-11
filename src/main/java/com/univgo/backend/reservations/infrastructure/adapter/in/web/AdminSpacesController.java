@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/admin/spaces")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN') or hasRole('GYM_ADMIN')")
 public class AdminSpacesController {
 
     private final GetSpaceDayBlocksUseCase getSpaceDayBlocksUseCase;
@@ -72,11 +73,16 @@ public class AdminSpacesController {
     public SpaceBlockDetailResponse blockDetail(
             @PathVariable UUID spaceId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime blockStart,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication) {
+        if (!GymSpaceAccessGuard.permits(authentication, spaceId)) {
+            throw new AccessDeniedException("GYM_ADMIN cannot read another space's roster");
+        }
         return SpaceBlockDetailResponse.from(getSpaceBlockDetailUseCase.execute(spaceId, date, blockStart));
     }
 
     /** The switch is a closure with no end date, so it is recorded against whoever flipped it. */
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{spaceId}/maintenance")
     public ResponseEntity<Void> setMaintenance(
             @PathVariable UUID spaceId,
@@ -88,12 +94,16 @@ public class AdminSpacesController {
 
     /** The whole history, reverted closures included: that a space was shut and reopened is a fact. */
     @GetMapping("/{spaceId}/closures")
-    public List<SpaceClosureResponse> closures(@PathVariable UUID spaceId) {
+    public List<SpaceClosureResponse> closures(@PathVariable UUID spaceId, Authentication authentication) {
+        if (!GymSpaceAccessGuard.permits(authentication, spaceId)) {
+            throw new AccessDeniedException("GYM_ADMIN cannot read another space's closure history");
+        }
         return getSpaceClosuresUseCase.execute(spaceId).stream()
                 .map(SpaceClosureResponse::from)
                 .toList();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{spaceId}/closures")
     public SpaceClosureResponse close(
             @PathVariable UUID spaceId,
@@ -112,6 +122,7 @@ public class AdminSpacesController {
      * Reopens the space. Nothing is written back to the reservations it suspended: they were never
      * touched, so they read as reserved again the moment the closure stops being in force.
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{spaceId}/closures/{closureId}/revert")
     public SpaceClosureResponse revertClosure(
             @PathVariable UUID spaceId, @PathVariable UUID closureId, Authentication authentication) {
@@ -122,6 +133,7 @@ public class AdminSpacesController {
         return UUID.fromString(authentication.getName());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{spaceId}/reservations/cancel-all")
     public CancelSpaceReservationsResponse cancelAll(@PathVariable UUID spaceId) {
         return new CancelSpaceReservationsResponse(cancelSpaceReservationsUseCase.execute(spaceId));
