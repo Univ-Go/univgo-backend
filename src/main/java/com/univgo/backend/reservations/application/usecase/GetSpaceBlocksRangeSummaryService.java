@@ -6,6 +6,7 @@ import com.univgo.backend.reservations.application.port.out.ReservationRepositor
 import com.univgo.backend.reservations.domain.BlockReservations;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
+import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.SpaceDaySummary;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
@@ -14,13 +15,16 @@ import com.univgo.backend.spaces.domain.BlockGenerator;
 import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
@@ -66,13 +70,24 @@ public class GetSpaceBlocksRangeSummaryService implements GetSpaceBlocksRangeSum
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
         LocalDateTime now = LocalDateTime.now();
 
+        // One query for the whole range on each side, grouped in memory — not one pair of queries
+        // per day, which is what made this endpoint exist in the first place.
+        Map<Integer, List<SpaceSchedule>> schedulesByDayOfWeek = spaceScheduleRepositoryPort
+                .findBySpaceId(spaceId)
+                .stream()
+                .collect(Collectors.groupingBy(SpaceSchedule::getDayOfWeek));
+        Map<LocalDate, List<Reservation>> reservationsByDate = reservationRepositoryPort
+                .findActiveBySpaceAndDateRange(spaceId, from, to)
+                .stream()
+                .collect(Collectors.groupingBy(Reservation::getReservationDate));
+
         List<SpaceDaySummary> summaries = new ArrayList<>((int) rangeDays);
         for (LocalDate date = from; !date.isAfter(to); date = date.plusDays(1)) {
             List<TimeBlock> blocks = BlockGenerator.generate(
-                    spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(spaceId, date.getDayOfWeek().getValue()),
+                    schedulesByDayOfWeek.getOrDefault(date.getDayOfWeek().getValue(), List.of()),
                     config.blockDuration());
             BlockReservations reservations =
-                    BlockReservations.of(reservationRepositoryPort.findActiveBySpaceAndDate(spaceId, date));
+                    BlockReservations.of(reservationsByDate.getOrDefault(date, List.of()));
 
             int totalFree = 0;
             for (TimeBlock block : blocks) {

@@ -2,8 +2,6 @@ package com.univgo.backend.reservations.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
@@ -64,15 +62,17 @@ class GetSpaceBlocksRangeSummaryServiceTest {
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of());
 
-        List<SpaceSchedule> scheduled = List.of(
-                new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0)));
-        // Call order follows ascending date: day 1 scheduled, day 2 closed (no schedule), day 3 scheduled.
-        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(eq(SPACE_ID), anyInt()))
-                .thenReturn(scheduled, List.of(), scheduled);
-        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_1))
+        // DAY_2's day of week has no window, so it reads as closed; DAY_1 and DAY_3 both do.
+        when(spaceScheduleRepositoryPort.findBySpaceId(SPACE_ID))
+                .thenReturn(List.of(
+                        new SpaceSchedule(
+                                UUID.randomUUID(), SPACE_ID, DAY_1.getDayOfWeek().getValue(),
+                                LocalTime.of(14, 0), LocalTime.of(16, 0)),
+                        new SpaceSchedule(
+                                UUID.randomUUID(), SPACE_ID, DAY_3.getDayOfWeek().getValue(),
+                                LocalTime.of(14, 0), LocalTime.of(16, 0))));
+        when(reservationRepositoryPort.findActiveBySpaceAndDateRange(SPACE_ID, DAY_1, DAY_3))
                 .thenReturn(List.of(activeReservation(DAY_1), activeReservation(DAY_1), activeReservation(DAY_1)));
-        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_2)).thenReturn(List.of());
-        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_3)).thenReturn(List.of());
 
         List<SpaceDaySummary> result = service.execute(SPACE_ID, DAY_1, DAY_3);
 

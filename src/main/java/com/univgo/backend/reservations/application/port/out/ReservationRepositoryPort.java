@@ -40,6 +40,9 @@ public interface ReservationRepositoryPort {
 
     List<Reservation> findActiveBySpaceAndDate(UUID spaceId, LocalDate date);
 
+    /** One query for a whole date range instead of one per day — the range summary's reason to exist. */
+    List<Reservation> findActiveBySpaceAndDateRange(UUID spaceId, LocalDate from, LocalDate to);
+
     List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date);
 
     List<Reservation> findActiveBySpaceId(UUID spaceId);
