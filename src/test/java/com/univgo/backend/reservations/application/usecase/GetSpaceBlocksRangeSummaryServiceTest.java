@@ -1,0 +1,112 @@
+package com.univgo.backend.reservations.application.usecase;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
+import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
+import com.univgo.backend.reservations.domain.InstitutionConfig;
+import com.univgo.backend.reservations.domain.Reservation;
+import com.univgo.backend.reservations.domain.SpaceDaySummary;
+import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
+import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
+import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
+import com.univgo.backend.spaces.domain.Space;
+import com.univgo.backend.spaces.domain.SpaceCategory;
+import com.univgo.backend.spaces.domain.SpaceSchedule;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class GetSpaceBlocksRangeSummaryServiceTest {
+
+    @Mock
+    private SpaceRepositoryPort spaceRepositoryPort;
+
+    @Mock
+    private SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
+
+    @Mock
+    private ReservationRepositoryPort reservationRepositoryPort;
+
+    @Mock
+    private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+
+    @Mock
+    private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+
+    @InjectMocks
+    private GetSpaceBlocksRangeSummaryService service;
+
+    private static final UUID SPACE_ID = UUID.randomUUID();
+    private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
+    private static final LocalDate DAY_1 = LocalDate.now().plusDays(7);
+    private static final LocalDate DAY_2 = DAY_1.plusDays(1);
+    private static final LocalDate DAY_3 = DAY_1.plusDays(2);
+
+    @Test
+    void sumsCapacityAndFreeSeatsPerDayAcrossTheRange_zeroOnDaysWithNoBlocks() {
+        Space space = new Space(
+                SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, "desc", List.of());
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of());
+
+        List<SpaceSchedule> scheduled = List.of(
+                new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0)));
+        // Call order follows ascending date: day 1 scheduled, day 2 closed (no schedule), day 3 scheduled.
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(eq(SPACE_ID), anyInt()))
+                .thenReturn(scheduled, List.of(), scheduled);
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_1))
+                .thenReturn(List.of(activeReservation(DAY_1), activeReservation(DAY_1), activeReservation(DAY_1)));
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_2)).thenReturn(List.of());
+        when(reservationRepositoryPort.findActiveBySpaceAndDate(SPACE_ID, DAY_3)).thenReturn(List.of());
+
+        List<SpaceDaySummary> result = service.execute(SPACE_ID, DAY_1, DAY_3);
+
+        assertThat(result).containsExactly(
+                new SpaceDaySummary(DAY_1, 30, 27),
+                new SpaceDaySummary(DAY_2, 0, 0),
+                new SpaceDaySummary(DAY_3, 30, 30));
+    }
+
+    @Test
+    void rejectsAToBeforeFrom() {
+        assertThatThrownBy(() -> service.execute(SPACE_ID, DAY_2, DAY_1))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void rejectsRangesLongerThan14Days() {
+        assertThatThrownBy(() -> service.execute(SPACE_ID, DAY_1, DAY_1.plusDays(14)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private static Reservation activeReservation(LocalDate date) {
+        return new Reservation(
+                UUID.randomUUID(),
+                UUID.randomUUID().toString(),
+                null,
+                UUID.randomUUID(),
+                SPACE_ID,
+                date,
+                LocalTime.of(14, 0),
+                LocalTime.of(16, 0),
+                LocalDateTime.now(),
+                null,
+                null,
+                null);
+    }
+}
