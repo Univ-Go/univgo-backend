@@ -58,6 +58,16 @@ class ChangePasswordServiceTest {
         assertRefused(new ChangePasswordCommand("wrong", "new-secret", "new-secret"), "incorrect");
     }
 
+    @Test
+    void rejectsANewPasswordShorterThanEight() {
+        assertRefused(new ChangePasswordCommand(CURRENT, "short", "short"), "at least 8");
+    }
+
+    @Test
+    void rejectsAMismatchedConfirmation() {
+        assertRefused(new ChangePasswordCommand(CURRENT, "new-secret", "new-secreT"), "does not match");
+    }
+
     private void assertRefused(ChangePasswordCommand command, String messagePart) {
         assertThatThrownBy(() -> service.execute(USER_ID, command))
                 .isInstanceOf(InvalidPasswordChangeException.class)

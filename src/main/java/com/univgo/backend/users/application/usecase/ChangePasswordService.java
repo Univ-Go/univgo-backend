@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ChangePasswordService implements ChangePasswordUseCase {
 
+    static final int MIN_LENGTH = 8;
+
     private final UserRepositoryPort userRepositoryPort;
     private final PasswordEncoder passwordEncoder;
 
@@ -30,6 +32,13 @@ public class ChangePasswordService implements ChangePasswordUseCase {
         if (command.currentPassword() == null
                 || !passwordEncoder.matches(command.currentPassword(), user.getPassword())) {
             throw new InvalidPasswordChangeException("Current password is incorrect");
+        }
+        if (command.newPassword() == null || command.newPassword().length() < MIN_LENGTH) {
+            throw new InvalidPasswordChangeException(
+                    "New password must be at least " + MIN_LENGTH + " characters");
+        }
+        if (!command.newPassword().equals(command.confirmation())) {
+            throw new InvalidPasswordChangeException("Password confirmation does not match");
         }
 
         user.changePassword(passwordEncoder.encode(command.newPassword()));
