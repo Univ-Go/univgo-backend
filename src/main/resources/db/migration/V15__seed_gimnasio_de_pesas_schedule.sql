@@ -11,4 +11,7 @@ FROM (VALUES
   (4, TIME '06:00', TIME '22:00'),
   (5, TIME '06:00', TIME '22:00'),
   (6, TIME '08:00', TIME '18:00')
-) AS d(dow, start_t, end_t);
+) AS d(dow, start_t, end_t)
+-- The gym row was created by hand, never by a migration, so a fresh database doesn't have it.
+-- Skip rather than fail there; the space and its hours come from the admin screens instead.
+WHERE EXISTS (SELECT 1 FROM spaces WHERE id = '9dabc028-466a-4ac0-8693-5c78b4b59929');
