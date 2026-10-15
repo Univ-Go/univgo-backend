@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.univgo.backend.users.application.port.in.ChangePasswordUseCase.ChangePasswordCommand;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import com.univgo.backend.users.application.port.out.UserSessionRevokerPort;
 import com.univgo.backend.users.domain.InvalidPasswordChangeException;
 import com.univgo.backend.users.domain.User;
 import java.util.Optional;
@@ -34,23 +35,27 @@ class ChangePasswordServiceTest {
     @Mock
     private UserRepositoryPort userRepositoryPort;
 
+    @Mock
+    private UserSessionRevokerPort userSessionRevokerPort;
+
     private ChangePasswordService service;
     private User user;
 
     @BeforeEach
     void setUp() {
-        service = new ChangePasswordService(userRepositoryPort, passwordEncoder);
+        service = new ChangePasswordService(userRepositoryPort, userSessionRevokerPort, passwordEncoder);
         user = new User(USER_ID, "123", "a@uni.edu", "Ana", "Ruiz",
                 passwordEncoder.encode(CURRENT), Set.of("STUDENT"), null);
         when(userRepositoryPort.findById(USER_ID)).thenReturn(Optional.of(user));
     }
 
     @Test
-    void storesTheNewHash() {
+    void storesTheNewHashAndLogsOutEverySession() {
         service.execute(USER_ID, new ChangePasswordCommand(CURRENT, "new-secret", "new-secret"));
 
         assertThat(passwordEncoder.matches("new-secret", user.getPassword())).isTrue();
         verify(userRepositoryPort).save(user);
+        verify(userSessionRevokerPort).revokeAllSessions(USER_ID);
     }
 
     @Test
@@ -73,5 +78,6 @@ class ChangePasswordServiceTest {
                 .isInstanceOf(InvalidPasswordChangeException.class)
                 .hasMessageContaining(messagePart);
         verify(userRepositoryPort, never()).save(any());
+        verify(userSessionRevokerPort, never()).revokeAllSessions(any());
     }
 }
