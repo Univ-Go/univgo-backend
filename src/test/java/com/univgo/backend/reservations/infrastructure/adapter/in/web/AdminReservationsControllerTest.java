@@ -90,8 +90,9 @@ class AdminReservationsControllerTest {
         when(userRepositoryPort.findByLoginIdentifier("nobody")).thenReturn(Optional.empty());
 
         var request = new AdminCreateReservationRequest("nobody", GYM_SPACE_ID, LocalDate.now(), LocalTime.of(14, 0));
+        var admin = authFor("ROLE_ADMIN");
 
-        assertThatThrownBy(() -> controller.createForStudent(request, authFor("ROLE_ADMIN")))
+        assertThatThrownBy(() -> controller.createForStudent(request, admin))
                 .isInstanceOf(UserNotFoundException.class);
         verify(createReservationUseCase, never()).execute(any());
     }
@@ -100,8 +101,9 @@ class AdminReservationsControllerTest {
     void gymAdminCannotBookOutsideTheGymSpace() {
         var request = new AdminCreateReservationRequest(
                 "1234567890", OTHER_SPACE_ID, LocalDate.now(), LocalTime.of(14, 0));
+        var gymAdmin = authFor("ROLE_GYM_ADMIN");
 
-        assertThatThrownBy(() -> controller.createForStudent(request, authFor("ROLE_GYM_ADMIN")))
+        assertThatThrownBy(() -> controller.createForStudent(request, gymAdmin))
                 .isInstanceOf(AccessDeniedException.class);
         verify(userRepositoryPort, never()).findByLoginIdentifier(any());
         verify(createReservationUseCase, never()).execute(any());

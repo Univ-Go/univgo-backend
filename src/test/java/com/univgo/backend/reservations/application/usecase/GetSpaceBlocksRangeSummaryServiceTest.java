@@ -15,15 +15,16 @@ import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPor
 import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -45,7 +46,6 @@ class GetSpaceBlocksRangeSummaryServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
-    @InjectMocks
     private GetSpaceBlocksRangeSummaryService service;
 
     private static final UUID SPACE_ID = UUID.randomUUID();
@@ -53,6 +53,17 @@ class GetSpaceBlocksRangeSummaryServiceTest {
     private static final LocalDate DAY_1 = LocalDate.now().plusDays(7);
     private static final LocalDate DAY_2 = DAY_1.plusDays(1);
     private static final LocalDate DAY_3 = DAY_1.plusDays(2);
+
+    @BeforeEach
+    void setUp() {
+        service = new GetSpaceBlocksRangeSummaryService(
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                reservationRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.systemDefaultZone());
+    }
 
     @Test
     void sumsCapacityAndFreeSeatsPerDayAcrossTheRange_zeroOnDaysWithNoBlocks() {
@@ -90,7 +101,9 @@ class GetSpaceBlocksRangeSummaryServiceTest {
 
     @Test
     void rejectsRangesLongerThan14Days() {
-        assertThatThrownBy(() -> service.execute(SPACE_ID, DAY_1, DAY_1.plusDays(14)))
+        LocalDate fifteenthDay = DAY_1.plusDays(14);
+
+        assertThatThrownBy(() -> service.execute(SPACE_ID, DAY_1, fifteenthDay))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
