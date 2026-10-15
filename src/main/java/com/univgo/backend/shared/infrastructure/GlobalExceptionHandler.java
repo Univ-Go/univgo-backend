@@ -18,6 +18,7 @@ import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceTypeNotFoundException;
 import com.univgo.backend.spaces.domain.TooManyImagesException;
 import com.univgo.backend.spaces.domain.UnreadableImageException;
+import com.univgo.backend.users.domain.InvalidPasswordChangeException;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import java.time.Instant;
 import java.util.Map;
@@ -47,7 +48,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({
         IllegalArgumentException.class,
         UnreadableImageException.class,
-        SpaceTypeNotFoundException.class
+        SpaceTypeNotFoundException.class,
+        InvalidPasswordChangeException.class
     })
     public ResponseEntity<Map<String, Object>> handleBadRequest(RuntimeException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
