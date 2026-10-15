@@ -62,6 +62,10 @@ public class UserJpaEntity {
         this.lastName = lastName;
     }
 
+    public void changePassword(String password) {
+        this.password = password;
+    }
+
     public UUID getId() {
         return id;
     }

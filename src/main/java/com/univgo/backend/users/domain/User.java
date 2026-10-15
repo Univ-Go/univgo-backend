@@ -10,7 +10,7 @@ public class User {
     private final String email;
     private String firstName;
     private String lastName;
-    private final String password;
+    private String password;
     private final Set<String> roles;
     private final String school;
 
@@ -36,6 +36,11 @@ public class User {
     public void rename(String firstName, String lastName) {
         this.firstName = firstName;
         this.lastName = lastName;
+    }
+
+    /** Takes an already-hashed password; hashing is the application layer's job. */
+    public void changePassword(String passwordHash) {
+        this.password = passwordHash;
     }
 
     public UUID getId() {
