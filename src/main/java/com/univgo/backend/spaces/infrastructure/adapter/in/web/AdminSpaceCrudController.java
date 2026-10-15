@@ -49,8 +49,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Managing the catalogue of spaces. It shares the {@code /admin/spaces} base path with the
- * reservations module's {@code AdminSpacesController}, which answers about a space's blocks and its
- * closures: the patterns are distinct, so nothing is ambiguous, and the split follows what each
+ * reservations module's {@code AdminSpacesController} and {@code AdminSpaceClosuresController}, which
+ * answer about a space's blocks and its closures: the patterns are distinct, so nothing is ambiguous, and the split follows what each
  * endpoint is about rather than what it is addressed as.
  *
  * <p>This is the {@code spaces} module's first inbound adapter. Writing a space's description, its

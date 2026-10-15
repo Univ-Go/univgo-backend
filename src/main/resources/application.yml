@@ -5,6 +5,12 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # Neon suspends its compute only once no connection is open. Hikari's default keeps the
+      # whole pool open forever, so let it drain to zero after a minute idle. The cost is a
+      # reconnect (and a Neon cold start) on the first request after a quiet period.
+      minimum-idle: 0
+      idle-timeout: 60000
   jpa:
     hibernate:
       ddl-auto: validate

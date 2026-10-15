@@ -75,6 +75,12 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public List<Reservation> findActiveBySpaceAndDateRange(UUID spaceId, LocalDate from, LocalDate to) {
+        return toDomain(
+                reservationJpaRepository.findBySpaceIdAndReservationDateBetweenAndCancelledAtIsNull(spaceId, from, to));
+    }
+
+    @Override
     public List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date) {
         return toDomain(reservationJpaRepository.findByUserIdAndReservationDateAndCancelledAtIsNull(userId, date));
     }
