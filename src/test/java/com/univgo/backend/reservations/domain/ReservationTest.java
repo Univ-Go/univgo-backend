@@ -101,6 +101,7 @@ class ReservationTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 UUID.randomUUID(),
                 new ReservationSchedule(DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),

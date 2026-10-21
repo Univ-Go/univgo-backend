@@ -11,4 +11,6 @@ public interface SpaceScheduleJpaRepository extends JpaRepository<SpaceScheduleJ
     List<SpaceScheduleJpaEntity> findByDayOfWeek(short dayOfWeek);
 
     List<SpaceScheduleJpaEntity> findBySpaceId(UUID spaceId);
+
+    void deleteBySpaceId(UUID spaceId);
 }

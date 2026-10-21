@@ -64,12 +64,22 @@ public interface ReservationJpaRepository extends JpaRepository<ReservationJpaEn
 
     List<ReservationJpaEntity> findBySpaceIdAndReservationDateAndCancelledAtIsNull(UUID spaceId, LocalDate reservationDate);
 
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDateBetweenAndCancelledAtIsNull(
+            UUID spaceId, LocalDate from, LocalDate to);
+
     List<ReservationJpaEntity> findByUserIdAndReservationDateAndCancelledAtIsNull(UUID userId, LocalDate reservationDate);
 
     Optional<ReservationJpaEntity> findByQrCodeData(String qrCodeData);
+
+    Optional<ReservationJpaEntity> findByReservationDateAndConfirmationCodeAndCancelledAtIsNull(
+            LocalDate reservationDate, String confirmationCode);
+
+    boolean existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(LocalDate reservationDate, String confirmationCode);
 
     List<ReservationJpaEntity> findBySpaceIdAndCancelledAtIsNull(UUID spaceId);
 
     List<ReservationJpaEntity> findByUserIdAndSpaceIdAndReservationDateGreaterThanEqualAndCancelledAtIsNull(
             UUID userId, UUID spaceId, LocalDate fromDate);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDate(UUID spaceId, LocalDate reservationDate);
 }

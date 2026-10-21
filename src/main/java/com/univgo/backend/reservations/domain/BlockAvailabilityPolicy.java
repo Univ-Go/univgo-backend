@@ -34,8 +34,7 @@ public final class BlockAvailabilityPolicy {
 
         LocalDateTime blockStartDateTime = LocalDateTime.of(context.date(), block.start());
         LocalDateTime blockEndDateTime = LocalDateTime.of(context.date(), block.end());
-        LocalDateTime previewOpens =
-                ReservationTimingCalculator.checkInOpensAt(blockStartDateTime, context.now(), context.config().tolerance());
+        LocalDateTime previewOpens = ReservationTimingCalculator.checkInOpensAt(blockStartDateTime, context.now());
         LocalDateTime previewCloses = ReservationTimingCalculator.checkInClosesAt(
                 blockStartDateTime, blockEndDateTime, context.now(), context.config().tolerance(), context.config().minUsage());
 

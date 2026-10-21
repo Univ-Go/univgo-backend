@@ -1,16 +1,20 @@
 package com.univgo.backend.users.infrastructure.adapter.in.web;
 
+import com.univgo.backend.users.application.port.in.ChangePasswordUseCase;
+import com.univgo.backend.users.application.port.in.ChangePasswordUseCase.ChangePasswordCommand;
 import com.univgo.backend.users.application.port.in.DeleteUserUseCase;
 import com.univgo.backend.users.application.port.in.GetAllUsersUseCase;
 import com.univgo.backend.users.application.port.in.GetUserByIdUseCase;
 import com.univgo.backend.users.application.port.in.UpdateUserUseCase;
 import com.univgo.backend.users.application.port.in.UpdateUserUseCase.UpdateUserCommand;
+import com.univgo.backend.users.infrastructure.adapter.in.web.dto.ChangePasswordRequest;
 import com.univgo.backend.users.infrastructure.adapter.in.web.dto.UpdateUserRequest;
 import com.univgo.backend.users.infrastructure.adapter.in.web.dto.UserResponse;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,16 +32,29 @@ public class UsersController {
     private final GetUserByIdUseCase getUserByIdUseCase;
     private final UpdateUserUseCase updateUserUseCase;
     private final DeleteUserUseCase deleteUserUseCase;
+    private final ChangePasswordUseCase changePasswordUseCase;
 
     public UsersController(
             GetAllUsersUseCase getAllUsersUseCase,
             GetUserByIdUseCase getUserByIdUseCase,
             UpdateUserUseCase updateUserUseCase,
-            DeleteUserUseCase deleteUserUseCase) {
+            DeleteUserUseCase deleteUserUseCase,
+            ChangePasswordUseCase changePasswordUseCase) {
         this.getAllUsersUseCase = getAllUsersUseCase;
         this.getUserByIdUseCase = getUserByIdUseCase;
         this.updateUserUseCase = updateUserUseCase;
         this.deleteUserUseCase = deleteUserUseCase;
+        this.changePasswordUseCase = changePasswordUseCase;
+    }
+
+    /** Self-service only: the user comes from the token, so there is no id to point at someone else. */
+    @PatchMapping("/me/password")
+    public ResponseEntity<Void> changePassword(
+            Authentication authentication, @RequestBody ChangePasswordRequest request) {
+        var command = new ChangePasswordCommand(
+                request.currentPassword(), request.newPassword(), request.confirmation());
+        changePasswordUseCase.execute(UUID.fromString(authentication.getName()), command);
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasRole('ADMIN')")

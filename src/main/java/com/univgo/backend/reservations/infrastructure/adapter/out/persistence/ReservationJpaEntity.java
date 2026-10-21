@@ -21,6 +21,9 @@ public class ReservationJpaEntity {
     @Column(name = "qr_code_data", nullable = false, unique = true)
     private String qrCodeData;
 
+    @Column(name = "confirmation_code")
+    private String confirmationCode;
+
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
@@ -42,6 +45,7 @@ public class ReservationJpaEntity {
     public ReservationJpaEntity(
             UUID id,
             String qrCodeData,
+            String confirmationCode,
             UUID userId,
             UUID spaceId,
             ReservationScheduleEmbeddable schedule,
@@ -49,6 +53,7 @@ public class ReservationJpaEntity {
             ReservationCheckpointEmbeddable checkpoint) {
         this.id = id;
         this.qrCodeData = qrCodeData;
+        this.confirmationCode = confirmationCode;
         this.userId = userId;
         this.spaceId = spaceId;
         this.schedule = schedule;
@@ -62,6 +67,10 @@ public class ReservationJpaEntity {
 
     public String getQrCodeData() {
         return qrCodeData;
+    }
+
+    public String getConfirmationCode() {
+        return confirmationCode;
     }
 
     public UUID getUserId() {

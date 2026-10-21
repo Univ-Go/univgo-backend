@@ -72,6 +72,17 @@ class CheckInReservationServiceTest {
     }
 
     @Test
+    void sixDigitCodeIsLookedUpAmongTodaysReservations() {
+        when(reservationRepositoryPort.findActiveByConfirmationCode(LocalDate.now(), "004217"))
+                .thenReturn(Optional.empty());
+
+        CheckInResult result = service.execute(new CheckInCommand("004217", SPACE_ID, null, null));
+
+        assertThat(result.verdict()).isEqualTo(CheckInVerdict.NOT_EXISTS);
+        verify(reservationRepositoryPort, never()).findByQrCodeData(any());
+    }
+
+    @Test
     void cancelledReservationIsNotExists() {
         Reservation reservation = reservationOn(FUTURE_DATE, LocalTime.of(14, 0), LocalTime.of(16, 0), LocalDateTime.now());
         reservation.cancel(CancelledBy.STUDENT, LocalDateTime.now(), CONFIG.tolerance(), CONFIG.minUsage());
@@ -170,6 +181,7 @@ class CheckInReservationServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 CODE,
+                null,
                 UUID.randomUUID(),
                 SPACE_ID,
                 new ReservationSchedule(date, new TimeBlock(start, end)),

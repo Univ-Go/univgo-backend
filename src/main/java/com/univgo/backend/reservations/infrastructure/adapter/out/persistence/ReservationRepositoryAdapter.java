@@ -47,6 +47,18 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public Optional<Reservation> findActiveByConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository
+                .findByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode)
+                .map(ReservationPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public boolean existsActiveConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository.existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode);
+    }
+
+    @Override
     public Reservation save(Reservation reservation) {
         var saved = reservationJpaRepository.save(ReservationPersistenceMapper.toEntity(reservation));
         return ReservationPersistenceMapper.toDomain(saved);
@@ -60,6 +72,12 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     @Override
     public List<Reservation> findActiveBySpaceAndDate(UUID spaceId, LocalDate date) {
         return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDateAndCancelledAtIsNull(spaceId, date));
+    }
+
+    @Override
+    public List<Reservation> findActiveBySpaceAndDateRange(UUID spaceId, LocalDate from, LocalDate to) {
+        return toDomain(
+                reservationJpaRepository.findBySpaceIdAndReservationDateBetweenAndCancelledAtIsNull(spaceId, from, to));
     }
 
     @Override
@@ -109,5 +127,10 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     public List<Reservation> findActiveByUserAndSpaceFromDate(UUID userId, UUID spaceId, LocalDate fromDate) {
         return toDomain(reservationJpaRepository
                 .findByUserIdAndSpaceIdAndReservationDateGreaterThanEqualAndCancelledAtIsNull(userId, spaceId, fromDate));
+    }
+
+    @Override
+    public List<Reservation> findBySpaceAndDate(UUID spaceId, LocalDate date) {
+        return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDate(spaceId, date));
     }
 }

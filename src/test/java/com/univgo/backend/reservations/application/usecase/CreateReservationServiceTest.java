@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -95,14 +97,14 @@ class CreateReservationServiceTest {
 
     @Test
     void throwsWhenSpaceDoesNotExist() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.empty());
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.execute(futureCommand)).isInstanceOf(SpaceNotFoundException.class);
     }
 
     @Test
     void throwsWhenTheBlockFallsInsideAClosure() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -113,7 +115,7 @@ class CreateReservationServiceTest {
 
     @Test
     void aClosureOfAnotherAfternoonDoesNotStopTheBooking() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -124,11 +126,29 @@ class CreateReservationServiceTest {
         assertThat(service.execute(futureCommand).getBlockStart()).isEqualTo(BLOCK_START);
     }
 
+    @Test
+    void drawsAnotherConfirmationCodeWhenTheFirstIsTakenThatDay() {
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
+                .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
+        when(reservationRepositoryPort.existsActiveConfirmationCode(eq(FUTURE_DATE), any()))
+                .thenReturn(true)
+                .thenReturn(false);
+        when(reservationRepositoryPort.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Reservation saved = service.execute(futureCommand);
+
+        assertThat(saved.getConfirmationCode()).matches("\\d{6}");
+        verify(reservationRepositoryPort, times(2)).existsActiveConfirmationCode(eq(FUTURE_DATE), any());
+    }
+
     /** The day's booking, held for a block of this same space that is not the one being asked for. */
     private static Reservation sameSpaceEarlierBlock() {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
@@ -150,7 +170,7 @@ class CreateReservationServiceTest {
 
     @Test
     void throwsWhenRequestedStartTimeIsNotAGeneratedBlock() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(LocalTime.of(6, 0), LocalTime.of(8, 0))));
@@ -163,7 +183,7 @@ class CreateReservationServiceTest {
         LocalDate pastDate = LocalDate.now().minusDays(1);
         var command = new CreateReservationCommand(USER_ID, SPACE_ID, pastDate, BLOCK_START);
 
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -173,7 +193,7 @@ class CreateReservationServiceTest {
 
     @Test
     void throwsWhenStudentAlreadyReservedThatSpaceToday() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -198,13 +218,14 @@ class CreateReservationServiceTest {
         Reservation expired = new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 new ReservationSchedule(fixedNow.toLocalDate(), new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
                 LocalDateTime.of(fixedNow.toLocalDate(), LocalTime.of(7, 0)),
                 ReservationCheckpoint.initial());
 
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -230,13 +251,14 @@ class CreateReservationServiceTest {
         Reservation longExpired = new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 new ReservationSchedule(oldDate, new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),
                 LocalDateTime.of(oldDate, LocalTime.of(7, 0)),
                 ReservationCheckpoint.initial());
 
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -251,7 +273,7 @@ class CreateReservationServiceTest {
 
     @Test
     void throwsWhenStudentHasAnOverlappingReservationInAnotherSpace() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -263,7 +285,7 @@ class CreateReservationServiceTest {
 
     @Test
     void throwsWhenTheBlockHasNoFreePlazas() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(1)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(1)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -277,7 +299,7 @@ class CreateReservationServiceTest {
 
     @Test
     void happyPathSavesTheReservation() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -299,7 +321,7 @@ class CreateReservationServiceTest {
 
     @Test
     void takesTheBlockLockBeforeCountingPlazasAndHoldsItThroughTheInsert() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -318,7 +340,7 @@ class CreateReservationServiceTest {
 
     @Test
     void doesNotTakeTheBlockLockForRefusalsThatNeedNoCount() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space(30)));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(schedule(BLOCK_START, BLOCK_END)));
@@ -348,6 +370,7 @@ class CreateReservationServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 SPACE_ID,
                 new ReservationSchedule(FUTURE_DATE, new TimeBlock(BLOCK_START, BLOCK_END)),

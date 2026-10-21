@@ -32,3 +32,6 @@ application-local.yml
 .DS_Store
 Thumbs.db
 ehthumbs.db
+
+#Claude skills files
+.vibe-wise

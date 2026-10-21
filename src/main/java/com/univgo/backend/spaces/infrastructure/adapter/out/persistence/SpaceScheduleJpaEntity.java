@@ -29,6 +29,16 @@ public class SpaceScheduleJpaEntity {
     protected SpaceScheduleJpaEntity() {
     }
 
+    /** All-args and no setters, as {@code SpaceJpaEntity}: a window is replaced, never mutated. */
+    public SpaceScheduleJpaEntity(
+            UUID id, UUID spaceId, short dayOfWeek, LocalTime startTime, LocalTime endTime) {
+        this.id = id;
+        this.spaceId = spaceId;
+        this.dayOfWeek = dayOfWeek;
+        this.startTime = startTime;
+        this.endTime = endTime;
+    }
+
     public UUID getId() {
         return id;
     }

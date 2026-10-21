@@ -50,6 +50,7 @@ class SpacePenaltyTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 USER_ID,
                 SPACE_ID,
                 new ReservationSchedule(DATE, new TimeBlock(LocalTime.of(8, 0), LocalTime.of(10, 0))),

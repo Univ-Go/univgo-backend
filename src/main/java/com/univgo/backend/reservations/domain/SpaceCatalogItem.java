@@ -1,6 +1,7 @@
 package com.univgo.backend.reservations.domain;
 
 import com.univgo.backend.spaces.domain.SpaceCategory;
+import com.univgo.backend.spaces.domain.SpaceImageView;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
@@ -17,7 +18,13 @@ import java.util.UUID;
  * {@code opensOnDate} and {@code closedOnDate} are what tell them apart.
  *
  * <p>{@code images} is ordered with the cover first, and empty for a space with no photographs
- * uploaded yet — the frontend falls back to its brand placeholder in that case.
+ * uploaded yet — the frontend falls back to its brand placeholder in that case. Each one carries a
+ * URL per derivative width, because a card on a phone and a banner on a desktop are not the same
+ * request and nothing resizes between here and the browser any more.
+ *
+ * <p>{@code archived} is how a retired space answers its own detail. The listing never contains
+ * one, but a student holding a reservation for a space that was just retired still opens it, so the
+ * endpoint answers and says so instead of pretending the space never existed.
  *
  * <p>{@code description} and {@code rules} are what the space says about itself, and they travel
  * with the list rather than only with the detail: the same record answers {@code GET /spaces} and
@@ -35,7 +42,8 @@ public record SpaceCatalogItem(
         boolean opensOnDate,
         boolean closedOnDate,
         List<LocalTime> freeBlockStarts,
-        List<String> images,
+        List<SpaceImageView> images,
         String description,
-        List<String> rules) {
+        List<String> rules,
+        boolean archived) {
 }
