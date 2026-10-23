@@ -9,6 +9,7 @@ import com.univgo.backend.spaces.application.port.out.SpaceImageResizerPort;
 import com.univgo.backend.spaces.application.port.out.SpaceImageStoragePort;
 import com.univgo.backend.spaces.domain.SpaceImage;
 import com.univgo.backend.spaces.domain.TooManyImagesException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,16 +38,19 @@ class SpaceImageWriter {
     private final SpaceImageRepositoryPort repository;
     private final SpaceImageStoragePort storage;
     private final SpaceImageLimitsPort limits;
+    private final Clock clock;
 
     SpaceImageWriter(
             SpaceImageResizerPort resizer,
             SpaceImageRepositoryPort repository,
             SpaceImageStoragePort storage,
-            SpaceImageLimitsPort limits) {
+            SpaceImageLimitsPort limits,
+            Clock clock) {
         this.resizer = resizer;
         this.repository = repository;
         this.storage = storage;
         this.limits = limits;
+        this.clock = clock;
     }
 
     void guardTotal(int total) {
@@ -65,7 +69,7 @@ class SpaceImageWriter {
      */
     List<SpaceImage> store(UUID spaceId, List<ImageUpload> photos, int startPosition, UUID actor) {
         List<SpaceImage> stored = new ArrayList<>(photos.size());
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         for (int i = 0; i < photos.size(); i++) {
             ImageUpload photo = photos.get(i);
@@ -115,7 +119,7 @@ class SpaceImageWriter {
                 if (status == STATUS_ROLLED_BACK) {
                     try {
                         storage.deletePrefix(originalKey);
-                    } catch (RuntimeException cleanupFailed) {
+                    } catch (RuntimeException _) {
                         // Best effort on purpose: the rows are already gone, so what is left is
                         // storage nothing references. Failing here would replace a harmless orphan
                         // with an error the administrator cannot act on.
