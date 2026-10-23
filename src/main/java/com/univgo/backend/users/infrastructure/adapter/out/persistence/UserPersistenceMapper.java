@@ -13,14 +13,15 @@ final class UserPersistenceMapper {
         Set<String> roles = entity.getRoles().stream()
                 .map(RoleJpaEntity::getName)
                 .collect(Collectors.toSet());
-        return new User(
-                entity.getId(),
-                entity.getIdentification(),
-                entity.getEmail(),
-                entity.getFirstName(),
-                entity.getLastName(),
-                entity.getPassword(),
-                roles,
-                entity.getSchool());
+        return User.builder()
+                .id(entity.getId())
+                .identification(entity.getIdentification())
+                .email(entity.getEmail())
+                .firstName(entity.getFirstName())
+                .lastName(entity.getLastName())
+                .password(entity.getPassword())
+                .roles(roles)
+                .school(entity.getSchool())
+                .build();
     }
 }
