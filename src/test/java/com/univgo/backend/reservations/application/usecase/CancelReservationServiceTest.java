@@ -12,14 +12,15 @@ import com.univgo.backend.reservations.domain.CannotCancelInProgressReservationE
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,8 +33,13 @@ class CancelReservationServiceTest {
     @Mock
     private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
 
-    @InjectMocks
     private CancelReservationService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new CancelReservationService(
+                reservationRepositoryPort, institutionConfigRepositoryPort, Clock.systemDefaultZone());
+    }
 
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
     private static final LocalDate FUTURE_DATE = LocalDate.now().plusDays(7);
@@ -71,9 +77,10 @@ class CancelReservationServiceTest {
         UUID ownerId = UUID.randomUUID();
         UUID otherStudentId = UUID.randomUUID();
         Reservation reservation = reservation(ownerId);
-        when(reservationRepositoryPort.findById(reservation.getId())).thenReturn(Optional.of(reservation));
+        UUID reservationId = reservation.getId();
+        when(reservationRepositoryPort.findById(reservationId)).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> service.execute(reservation.getId(), otherStudentId, false))
+        assertThatThrownBy(() -> service.execute(reservationId, otherStudentId, false))
                 .isInstanceOf(ReservationNotFoundException.class);
     }
 
@@ -81,8 +88,9 @@ class CancelReservationServiceTest {
     void cancellingAnUnknownReservationThrowsNotFound() {
         UUID id = UUID.randomUUID();
         when(reservationRepositoryPort.findById(id)).thenReturn(Optional.empty());
+        UUID otherId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.execute(id, UUID.randomUUID(), false))
+        assertThatThrownBy(() -> service.execute(id, otherId, false))
                 .isInstanceOf(ReservationNotFoundException.class);
     }
 
@@ -91,26 +99,25 @@ class CancelReservationServiceTest {
         UUID ownerId = UUID.randomUUID();
         Reservation reservation = reservation(ownerId);
         reservation.checkIn(LocalDateTime.of(FUTURE_DATE, LocalTime.of(14, 0)));
-        when(reservationRepositoryPort.findById(reservation.getId())).thenReturn(Optional.of(reservation));
+        UUID reservationId = reservation.getId();
+        when(reservationRepositoryPort.findById(reservationId)).thenReturn(Optional.of(reservation));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
+        UUID otherAdminId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.execute(reservation.getId(), UUID.randomUUID(), true))
+        assertThatThrownBy(() -> service.execute(reservationId, otherAdminId, true))
                 .isInstanceOf(CannotCancelInProgressReservationException.class);
     }
 
     private static Reservation reservation(UUID ownerId) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                ownerId,
-                UUID.randomUUID(),
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(ownerId)
+                .spaceId(UUID.randomUUID())
+                .reservationDate(FUTURE_DATE)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }
