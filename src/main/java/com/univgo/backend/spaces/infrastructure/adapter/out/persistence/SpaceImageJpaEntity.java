@@ -45,27 +45,21 @@ public class SpaceImageJpaEntity {
     }
 
     /** All-args and no setters, as the other entities in this package: a row is replaced, not mutated. */
-    public SpaceImageJpaEntity(
-            UUID id,
-            UUID spaceId,
-            short position,
-            String originalKey,
-            String contentType,
-            Integer width,
-            Integer height,
-            Integer byteSize,
-            LocalDateTime createdAt,
-            UUID createdBy) {
-        this.id = id;
-        this.spaceId = spaceId;
-        this.position = position;
-        this.originalKey = originalKey;
-        this.contentType = contentType;
-        this.width = width;
-        this.height = height;
-        this.byteSize = byteSize;
-        this.createdAt = createdAt;
-        this.createdBy = createdBy;
+    private SpaceImageJpaEntity(Builder builder) {
+        this.id = builder.id;
+        this.spaceId = builder.spaceId;
+        this.position = builder.position;
+        this.originalKey = builder.originalKey;
+        this.contentType = builder.contentType;
+        this.width = builder.width;
+        this.height = builder.height;
+        this.byteSize = builder.byteSize;
+        this.createdAt = builder.createdAt;
+        this.createdBy = builder.createdBy;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public UUID getId() {
@@ -106,5 +100,75 @@ public class SpaceImageJpaEntity {
 
     public UUID getCreatedBy() {
         return createdBy;
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private UUID spaceId;
+        private short position;
+        private String originalKey;
+        private String contentType;
+        private Integer width;
+        private Integer height;
+        private Integer byteSize;
+        private LocalDateTime createdAt;
+        private UUID createdBy;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder spaceId(UUID spaceId) {
+            this.spaceId = spaceId;
+            return this;
+        }
+
+        public Builder position(short position) {
+            this.position = position;
+            return this;
+        }
+
+        public Builder originalKey(String originalKey) {
+            this.originalKey = originalKey;
+            return this;
+        }
+
+        public Builder contentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public Builder width(Integer width) {
+            this.width = width;
+            return this;
+        }
+
+        public Builder height(Integer height) {
+            this.height = height;
+            return this;
+        }
+
+        public Builder byteSize(Integer byteSize) {
+            this.byteSize = byteSize;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder createdBy(UUID createdBy) {
+            this.createdBy = createdBy;
+            return this;
+        }
+
+        public SpaceImageJpaEntity build() {
+            return new SpaceImageJpaEntity(this);
+        }
     }
 }
