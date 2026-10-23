@@ -80,7 +80,7 @@ final class AforoExcelWriter {
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("(?:^-)|(?:-$)", "");
+                .replaceAll("^-|-$", "");
     }
 
     private static void writeSummary(Sheet sheet, AforoReport report, Styles styles) {
