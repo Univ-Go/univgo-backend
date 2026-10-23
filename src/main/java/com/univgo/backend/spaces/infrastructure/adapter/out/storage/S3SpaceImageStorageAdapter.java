@@ -10,9 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -83,7 +81,7 @@ public class S3SpaceImageStorageAdapter implements SpaceImageStoragePort {
 
         s3Client.deleteObjects(DeleteObjectsRequest.builder()
                 .bucket(properties.bucket())
-                .delete(Delete.builder().objects(keys).build())
+                .delete(d -> d.objects(keys))
                 .build());
     }
 
@@ -100,11 +98,9 @@ public class S3SpaceImageStorageAdapter implements SpaceImageStoragePort {
     }
 
     private String presign(String key) {
-        GetObjectRequest getRequest =
-                GetObjectRequest.builder().bucket(properties.bucket()).key(key).build();
         GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(PRESIGN_DURATION)
-                .getObjectRequest(getRequest)
+                .getObjectRequest(r -> r.bucket(properties.bucket()).key(key))
                 .build();
         return s3Presigner.presignGetObject(presignRequest).url().toString();
     }
