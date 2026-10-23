@@ -10,6 +10,7 @@ import com.univgo.backend.reservations.domain.ReservationState;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -25,16 +26,19 @@ public class CheckInReservationService implements CheckInReservationUseCase {
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final UserRepositoryPort userRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public CheckInReservationService(
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             UserRepositoryPort userRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.userRepositoryPort = userRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -61,7 +65,7 @@ public class CheckInReservationService implements CheckInReservationUseCase {
         }
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // A closed door lets nobody in, and it is not the student's fault either: the reservation is
         // suspended, not expired, and it comes back if the closure is reverted (spec §12).
@@ -93,7 +97,7 @@ public class CheckInReservationService implements CheckInReservationUseCase {
     // code is only unique within a day, and the door only ever checks today's bookings.
     private Optional<Reservation> findByCode(String code) {
         if (CONFIRMATION_CODE.matcher(code).matches()) {
-            return reservationRepositoryPort.findActiveByConfirmationCode(LocalDate.now(), code);
+            return reservationRepositoryPort.findActiveByConfirmationCode(LocalDate.now(clock), code);
         }
         return reservationRepositoryPort.findByQrCodeData(code);
     }

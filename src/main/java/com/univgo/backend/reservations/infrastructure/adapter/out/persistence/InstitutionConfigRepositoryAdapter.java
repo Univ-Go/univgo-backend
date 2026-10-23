@@ -2,6 +2,7 @@ package com.univgo.backend.reservations.infrastructure.adapter.out.persistence;
 
 import com.univgo.backend.reservations.application.port.out.InstitutionConfigRepositoryPort;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Repository;
@@ -17,10 +18,12 @@ public class InstitutionConfigRepositoryAdapter implements InstitutionConfigRepo
     private static final short SINGLETON_ID = 1;
 
     private final InstitutionConfigJpaRepository institutionConfigJpaRepository;
+    private final Clock clock;
     private final AtomicReference<InstitutionConfig> cache = new AtomicReference<>();
 
-    public InstitutionConfigRepositoryAdapter(InstitutionConfigJpaRepository institutionConfigJpaRepository) {
+    public InstitutionConfigRepositoryAdapter(InstitutionConfigJpaRepository institutionConfigJpaRepository, Clock clock) {
         this.institutionConfigJpaRepository = institutionConfigJpaRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -43,7 +46,7 @@ public class InstitutionConfigRepositoryAdapter implements InstitutionConfigRepo
                 config.getCheckInToleranceMinutes(),
                 config.getMinUsageMinutes(),
                 config.getReservationsPerSpacePerDay(),
-                LocalDateTime.now());
+                LocalDateTime.now(clock));
         InstitutionConfig updated = toDomain(institutionConfigJpaRepository.save(entity));
         cache.set(updated);
         return updated;

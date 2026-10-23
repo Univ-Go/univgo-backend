@@ -12,13 +12,14 @@ import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -34,8 +35,13 @@ class SetSpaceMaintenanceServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
-    @InjectMocks
     private SetSpaceMaintenanceService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new SetSpaceMaintenanceService(
+                spaceRepositoryPort, spaceClosureRepositoryPort, Clock.systemDefaultZone());
+    }
 
     @Test
     void takingASpaceOutOfServiceClosesItWithNoEndDate() {
@@ -99,16 +105,14 @@ class SetSpaceMaintenanceServiceTest {
     }
 
     private static SpaceClosure closure(LocalDateTime startsAt, LocalDateTime endsAt) {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
-                ADMIN_ID,
-                LocalDateTime.now(),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(startsAt)
+                .endsAt(endsAt)
+                .reason(ClosureReason.MAINTENANCE)
+                .createdBy(ADMIN_ID)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

@@ -14,13 +14,14 @@ import com.univgo.backend.spaces.application.port.out.SpaceReservationCounterPor
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -39,22 +40,24 @@ class ArchiveSpaceServiceTest {
     @Mock
     private SpaceReservationCounterPort spaceReservationCounterPort;
 
-    @InjectMocks
     private ArchiveSpaceService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new ArchiveSpaceService(
+                spaceRepositoryPort, spaceClosureRepositoryPort, spaceReservationCounterPort, Clock.systemDefaultZone());
+    }
 
     private static SpaceClosure indefiniteClosure() {
         LocalDateTime now = LocalDateTime.now();
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                now.minusHours(1),
-                null,
-                ClosureReason.MAINTENANCE,
-                null,
-                ADMIN_ID,
-                now.minusHours(1),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(now.minusHours(1))
+                .reason(ClosureReason.MAINTENANCE)
+                .createdBy(ADMIN_ID)
+                .createdAt(now.minusHours(1))
+                .build();
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.univgo.backend.reservations.application.port.in.GetSpaceCatalogUseCas
 import com.univgo.backend.reservations.application.port.in.GetSpaceDetailUseCase;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.BlockAvailabilityResponse;
 import com.univgo.backend.reservations.infrastructure.adapter.in.web.dto.SpaceCatalogResponse;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -23,21 +24,24 @@ public class SpacesController {
     private final GetSpaceCatalogUseCase getSpaceCatalogUseCase;
     private final GetSpaceAvailabilityUseCase getSpaceAvailabilityUseCase;
     private final GetSpaceDetailUseCase getSpaceDetailUseCase;
+    private final Clock clock;
 
     public SpacesController(
             GetSpaceCatalogUseCase getSpaceCatalogUseCase,
             GetSpaceAvailabilityUseCase getSpaceAvailabilityUseCase,
-            GetSpaceDetailUseCase getSpaceDetailUseCase) {
+            GetSpaceDetailUseCase getSpaceDetailUseCase,
+            Clock clock) {
         this.getSpaceCatalogUseCase = getSpaceCatalogUseCase;
         this.getSpaceAvailabilityUseCase = getSpaceAvailabilityUseCase;
         this.getSpaceDetailUseCase = getSpaceDetailUseCase;
+        this.clock = clock;
     }
 
     /** The day defaults to today: browsing the catalog without asking for a date means "now". */
     @GetMapping
     public List<SpaceCatalogResponse> catalog(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        LocalDate requested = date != null ? date : LocalDate.now();
+        LocalDate requested = date != null ? date : LocalDate.now(clock);
         return getSpaceCatalogUseCase.execute(requested).stream().map(SpaceCatalogResponse::from).toList();
     }
 
@@ -46,7 +50,7 @@ public class SpacesController {
     public SpaceCatalogResponse detail(
             @PathVariable UUID id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        LocalDate requested = date != null ? date : LocalDate.now();
+        LocalDate requested = date != null ? date : LocalDate.now(clock);
         return SpaceCatalogResponse.from(getSpaceDetailUseCase.execute(id, requested));
     }
 

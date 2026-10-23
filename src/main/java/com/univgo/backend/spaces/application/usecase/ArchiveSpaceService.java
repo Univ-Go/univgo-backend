@@ -8,6 +8,7 @@ import com.univgo.backend.spaces.application.port.out.SpaceReservationCounterPor
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -32,14 +33,17 @@ public class ArchiveSpaceService implements ArchiveSpaceUseCase {
     private final SpaceRepositoryPort spaceRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
     private final SpaceReservationCounterPort spaceReservationCounterPort;
+    private final Clock clock;
 
     public ArchiveSpaceService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceClosureRepositoryPort spaceClosureRepositoryPort,
-            SpaceReservationCounterPort spaceReservationCounterPort) {
+            SpaceReservationCounterPort spaceReservationCounterPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
         this.spaceReservationCounterPort = spaceReservationCounterPort;
+        this.clock = clock;
     }
 
     @Override
@@ -50,23 +54,20 @@ public class ArchiveSpaceService implements ArchiveSpaceUseCase {
         }
 
         int suspended = spaceReservationCounterPort.countSuspendable(spaceId);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         boolean alreadyShutIndefinitely = spaceClosureRepositoryPort.findInForceBySpaceId(spaceId).stream()
                 .anyMatch(SpaceClosure::isIndefinite);
 
         if (!alreadyShutIndefinitely) {
-            spaceClosureRepositoryPort.save(new SpaceClosure(
-                    Uuidv7Generator.generate(),
-                    spaceId,
-                    now,
-                    null,
-                    ClosureReason.MAINTENANCE,
-                    null,
-                    actor,
-                    now,
-                    null,
-                    null));
+            spaceClosureRepositoryPort.save(SpaceClosure.builder()
+                    .id(Uuidv7Generator.generate())
+                    .spaceId(spaceId)
+                    .startsAt(now)
+                    .reason(ClosureReason.MAINTENANCE)
+                    .createdBy(actor)
+                    .createdAt(now)
+                    .build());
         }
 
         spaceRepositoryPort.archive(spaceId, actor, now);

@@ -18,15 +18,16 @@ import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -48,8 +49,18 @@ class GetSpaceAvailabilityServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
-    @InjectMocks
     private GetSpaceAvailabilityService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new GetSpaceAvailabilityService(
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                reservationRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.systemDefaultZone());
+    }
 
     private static final UUID SPACE_ID = UUID.randomUUID();
     private static final UUID USER_ID = UUID.randomUUID();
@@ -59,15 +70,16 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void reportsFreePlazasBasedOnCapacityMinusActiveReservations() {
-        Space space = new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Bloque A",
-                30,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of());
+        Space space = Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio")
+                .rules(List.of())
+                .build();
         when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -88,15 +100,16 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenFull() {
-        Space space = new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Bloque A",
-                1,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of());
+        Space space = Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(1)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio")
+                .rules(List.of())
+                .build();
         when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -113,15 +126,16 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void blockIsNotOfferedWhenAlreadyReservedTodayOrOverlapping() {
-        Space space = new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Bloque A",
-                30,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of());
+        Space space = Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio")
+                .rules(List.of())
+                .build();
         when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -141,15 +155,16 @@ class GetSpaceAvailabilityServiceTest {
 
     @Test
     void aClosedBlockIsShownAndRefused_ratherThanMissingFromTheGrid() {
-        Space space = new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Bloque A",
-                30,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of());
+        Space space = Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio")
+                .rules(List.of())
+                .build();
         when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
@@ -167,17 +182,14 @@ class GetSpaceAvailabilityServiceTest {
     }
 
     private static SpaceClosure indefiniteClosure() {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                LocalDateTime.now().minusHours(1),
-                null,
-                ClosureReason.TECHNICAL_INCIDENT,
-                null,
-                UUID.randomUUID(),
-                LocalDateTime.now(),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(LocalDateTime.now().minusHours(1))
+                .reason(ClosureReason.TECHNICAL_INCIDENT)
+                .createdBy(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     private static Reservation activeReservation() {
@@ -185,18 +197,15 @@ class GetSpaceAvailabilityServiceTest {
     }
 
     private static Reservation reservationOf(UUID userId) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                userId,
-                SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(userId)
+                .spaceId(SPACE_ID)
+                .reservationDate(FUTURE_DATE)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

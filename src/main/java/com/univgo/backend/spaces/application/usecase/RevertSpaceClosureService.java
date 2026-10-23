@@ -4,6 +4,7 @@ import com.univgo.backend.spaces.application.port.in.RevertSpaceClosureUseCase;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosureNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class RevertSpaceClosureService implements RevertSpaceClosureUseCase {
 
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
-    public RevertSpaceClosureService(SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+    public RevertSpaceClosureService(SpaceClosureRepositoryPort spaceClosureRepositoryPort, Clock clock) {
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     /**
@@ -26,7 +29,7 @@ public class RevertSpaceClosureService implements RevertSpaceClosureUseCase {
         SpaceClosure closure =
                 spaceClosureRepositoryPort.findById(closureId).orElseThrow(() -> new SpaceClosureNotFoundException(closureId));
 
-        closure.revert(actor, LocalDateTime.now());
+        closure.revert(actor, LocalDateTime.now(clock));
 
         return spaceClosureRepositoryPort.save(closure);
     }
