@@ -44,15 +44,16 @@ class UpdateSpaceSectionsServiceTest {
     private SpaceTypeRepositoryPort spaceTypeRepositoryPort;
 
     private static Space existing() {
-        return new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Complejo Deportivo Central",
-                30,
-                TYPE_ID,
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio.",
-                List.of("Usa toalla sobre las máquinas."));
+        return Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Complejo Deportivo Central")
+                .capacity(30)
+                .spaceTypeId(TYPE_ID)
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio.")
+                .rules(List.of("Usa toalla sobre las máquinas."))
+                .build();
     }
 
     @Test

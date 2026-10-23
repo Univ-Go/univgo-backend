@@ -49,27 +49,21 @@ public class SpaceClosureJpaEntity {
     protected SpaceClosureJpaEntity() {
     }
 
-    public SpaceClosureJpaEntity(
-            UUID id,
-            UUID spaceId,
-            LocalDateTime startsAt,
-            LocalDateTime endsAt,
-            ClosureReason reason,
-            String details,
-            UUID createdBy,
-            LocalDateTime createdAt,
-            LocalDateTime revertedAt,
-            UUID revertedBy) {
-        this.id = id;
-        this.spaceId = spaceId;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
-        this.reason = reason;
-        this.details = details;
-        this.createdBy = createdBy;
-        this.createdAt = createdAt;
-        this.revertedAt = revertedAt;
-        this.revertedBy = revertedBy;
+    private SpaceClosureJpaEntity(Builder builder) {
+        this.id = builder.id;
+        this.spaceId = builder.spaceId;
+        this.startsAt = builder.startsAt;
+        this.endsAt = builder.endsAt;
+        this.reason = builder.reason;
+        this.details = builder.details;
+        this.createdBy = builder.createdBy;
+        this.createdAt = builder.createdAt;
+        this.revertedAt = builder.revertedAt;
+        this.revertedBy = builder.revertedBy;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public UUID getId() {
@@ -110,5 +104,76 @@ public class SpaceClosureJpaEntity {
 
     public UUID getRevertedBy() {
         return revertedBy;
+    }
+
+    public static final class Builder {
+
+        private UUID id;
+        private UUID spaceId;
+        private LocalDateTime startsAt;
+        private LocalDateTime endsAt;
+        private ClosureReason reason;
+        private String details;
+        private UUID createdBy;
+        private LocalDateTime createdAt;
+        private LocalDateTime revertedAt;
+        private UUID revertedBy;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder spaceId(UUID spaceId) {
+            this.spaceId = spaceId;
+            return this;
+        }
+
+        public Builder startsAt(LocalDateTime startsAt) {
+            this.startsAt = startsAt;
+            return this;
+        }
+
+        public Builder endsAt(LocalDateTime endsAt) {
+            this.endsAt = endsAt;
+            return this;
+        }
+
+        public Builder reason(ClosureReason reason) {
+            this.reason = reason;
+            return this;
+        }
+
+        public Builder details(String details) {
+            this.details = details;
+            return this;
+        }
+
+        public Builder createdBy(UUID createdBy) {
+            this.createdBy = createdBy;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder revertedAt(LocalDateTime revertedAt) {
+            this.revertedAt = revertedAt;
+            return this;
+        }
+
+        public Builder revertedBy(UUID revertedBy) {
+            this.revertedBy = revertedBy;
+            return this;
+        }
+
+        public SpaceClosureJpaEntity build() {
+            return new SpaceClosureJpaEntity(this);
+        }
     }
 }
