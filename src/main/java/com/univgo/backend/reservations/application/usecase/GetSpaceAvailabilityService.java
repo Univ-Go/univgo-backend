@@ -18,6 +18,7 @@ import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,18 +33,33 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public GetSpaceAvailabilityService(
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
+    }
+
+    /** Everything a block needs to compute its availability, fixed for the whole day's request. */
+    private record AvailabilityContext(
+            Space space,
+            LocalDate date,
+            LocalDateTime now,
+            InstitutionConfig config,
+            boolean alreadyReservedToday,
+            BlockReservations reservations,
+            List<Reservation> studentsDay,
+            SpaceClosures closures) {
     }
 
     @Override
@@ -55,7 +71,7 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
         List<TimeBlock> blocks = BlockGenerator.generate(
                 spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(spaceId, dayOfWeek), config.blockDuration());
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         // Two reads for the whole day instead of two per block: what the student already holds is
         // the same answer for every block, and the overlap check is arithmetic once it is in hand.
@@ -68,10 +84,10 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
                 studentsDay.stream().filter(reservation -> reservation.getSpaceId().equals(spaceId)).count();
         boolean alreadyReservedToday = heldHereToday >= config.getReservationsPerSpacePerDay();
 
-        return blocks.stream()
-                .map(block -> toAvailability(
-                        space, date, block, now, config, alreadyReservedToday, reservations, studentsDay, closures))
-                .toList();
+        AvailabilityContext context = new AvailabilityContext(
+                space, date, now, config, alreadyReservedToday, reservations, studentsDay, closures);
+
+        return blocks.stream().map(block -> toAvailability(context, block)).toList();
     }
 
     /** A person cannot be in two places at once, whichever space the other reservation is for. */
@@ -81,30 +97,26 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
                         && reservation.getBlockEnd().isAfter(block.start()));
     }
 
-    private BlockAvailability toAvailability(
-            Space space,
-            LocalDate date,
-            TimeBlock block,
-            LocalDateTime now,
-            InstitutionConfig config,
-            boolean alreadyReservedToday,
-            BlockReservations reservations,
-            List<Reservation> studentsDay,
-            SpaceClosures closures) {
-        List<Reservation> active = reservations.of(space.getId(), block);
-        long occupied = OccupancyCounter.countOccupiedPlazas(active, closures, now, config);
+    private BlockAvailability toAvailability(AvailabilityContext context, TimeBlock block) {
+        Space space = context.space();
+        LocalDate date = context.date();
+        LocalDateTime now = context.now();
+        InstitutionConfig config = context.config();
+
+        List<Reservation> active = context.reservations().of(space.getId(), block);
+        long occupied = OccupancyCounter.countOccupiedPlazas(active, context.closures(), now, config);
         int free = (int) Math.max(0, space.getCapacity() - occupied);
 
         boolean stillBookable =
                 ReservationTimingCalculator.isBlockStillBookable(date, block.end(), now, config.minUsage(), config.tolerance());
-        boolean overlaps = overlaps(studentsDay, block);
+        boolean overlaps = overlaps(context.studentsDay(), block);
         // A shut block is shown and refused with its own reason rather than left out of the grid:
         // a block that is merely missing reads as "the space closes at ten" (spec §10).
-        SpaceClosure closure = closures
+        SpaceClosure closure = context.closures()
                 .covering(space.getId(), date, block.start(), block.end())
                 .orElse(null);
         boolean closed = closure != null;
-        boolean offered = stillBookable && free > 0 && !alreadyReservedToday && !overlaps && !closed;
+        boolean offered = stillBookable && free > 0 && !context.alreadyReservedToday() && !overlaps && !closed;
 
         LocalDateTime blockStartDateTime = LocalDateTime.of(date, block.start());
         LocalDateTime blockEndDateTime = LocalDateTime.of(date, block.end());
@@ -118,7 +130,7 @@ public class GetSpaceAvailabilityService implements GetSpaceAvailabilityUseCase 
                 (int) occupied,
                 free,
                 offered,
-                alreadyReservedToday,
+                context.alreadyReservedToday(),
                 overlaps,
                 closed,
                 closure == null ? null : closure.getReason(),
