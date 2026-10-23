@@ -102,17 +102,16 @@ class ReservationStatusResolverTest {
     }
 
     private static SpaceClosure closure() {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                LocalDateTime.of(DAY, LocalTime.of(8, 0)),
-                LocalDateTime.of(DAY, LocalTime.of(20, 0)),
-                ClosureReason.TECHNICAL_INCIDENT,
-                "Gotera en la cancha",
-                ADMIN_ID,
-                LocalDateTime.of(DAY, LocalTime.of(7, 0)),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(LocalDateTime.of(DAY, LocalTime.of(8, 0)))
+                .endsAt(LocalDateTime.of(DAY, LocalTime.of(20, 0)))
+                .reason(ClosureReason.TECHNICAL_INCIDENT)
+                .details("Gotera en la cancha")
+                .createdBy(ADMIN_ID)
+                .createdAt(LocalDateTime.of(DAY, LocalTime.of(7, 0)))
+                .build();
     }
 
     private static Reservation reserved() {
@@ -120,18 +119,18 @@ class ReservationStatusResolverTest {
     }
 
     private static Reservation reservation(LocalDateTime checkedInAt, LocalDateTime cancelledAt, CancelledBy actor) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                USER_ID,
-                SPACE_ID,
-                DAY,
-                BLOCK_START,
-                BLOCK_END,
-                LocalDateTime.of(DAY.minusDays(1), LocalTime.of(10, 0)),
-                checkedInAt,
-                cancelledAt,
-                actor);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(USER_ID)
+                .spaceId(SPACE_ID)
+                .reservationDate(DAY)
+                .blockStart(BLOCK_START)
+                .blockEnd(BLOCK_END)
+                .createdAt(LocalDateTime.of(DAY.minusDays(1), LocalTime.of(10, 0)))
+                .checkedInAt(checkedInAt)
+                .cancelledAt(cancelledAt)
+                .cancelledBy(actor)
+                .build();
     }
 }
