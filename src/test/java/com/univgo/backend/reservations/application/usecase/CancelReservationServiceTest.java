@@ -110,6 +110,7 @@ class CancelReservationServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 ownerId,
                 UUID.randomUUID(),
                 new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),

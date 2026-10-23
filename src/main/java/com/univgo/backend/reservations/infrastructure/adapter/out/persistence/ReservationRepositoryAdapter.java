@@ -5,12 +5,16 @@ import com.univgo.backend.reservations.domain.Reservation;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
+
+    // this values is being used by the lock (this can be a random integer)
+    private static final int AFORO_LOCK_CLASS_ID = 1_918_989_140;
 
     private final ReservationJpaRepository reservationJpaRepository;
 
@@ -43,6 +47,18 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public Optional<Reservation> findActiveByConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository
+                .findByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode)
+                .map(ReservationPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public boolean existsActiveConfirmationCode(LocalDate date, String confirmationCode) {
+        return reservationJpaRepository.existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(date, confirmationCode);
+    }
+
+    @Override
     public Reservation save(Reservation reservation) {
         var saved = reservationJpaRepository.save(ReservationPersistenceMapper.toEntity(reservation));
         return ReservationPersistenceMapper.toDomain(saved);
@@ -56,6 +72,12 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     @Override
     public List<Reservation> findActiveBySpaceAndDate(UUID spaceId, LocalDate date) {
         return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDateAndCancelledAtIsNull(spaceId, date));
+    }
+
+    @Override
+    public List<Reservation> findActiveBySpaceAndDateRange(UUID spaceId, LocalDate from, LocalDate to) {
+        return toDomain(
+                reservationJpaRepository.findBySpaceIdAndReservationDateBetweenAndCancelledAtIsNull(spaceId, from, to));
     }
 
     @Override
@@ -85,9 +107,24 @@ public class ReservationRepositoryAdapter implements ReservationRepositoryPort {
     }
 
     @Override
+    public void lockBlockForBooking(UUID spaceId, LocalDate date, LocalTime startTime) {
+        reservationJpaRepository.acquireAdvisoryTransactionLock(AFORO_LOCK_CLASS_ID, blockKey(spaceId, date, startTime));
+    }
+
+
+    private static int blockKey(UUID spaceId, LocalDate date, LocalTime startTime) {
+        return Objects.hash(spaceId, date, startTime);
+    }
+
+    @Override
     public List<Reservation> findActiveBySpaceId(UUID spaceId) {
         return reservationJpaRepository.findBySpaceIdAndCancelledAtIsNull(spaceId).stream()
                 .map(ReservationPersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public List<Reservation> findBySpaceAndDate(UUID spaceId, LocalDate date) {
+        return toDomain(reservationJpaRepository.findBySpaceIdAndReservationDate(spaceId, date));
     }
 }

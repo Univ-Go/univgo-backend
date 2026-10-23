@@ -56,13 +56,27 @@ public interface ReservationJpaRepository extends JpaRepository<ReservationJpaEn
             @Param("startTime") LocalTime startTime,
             @Param("endTime") LocalTime endTime);
 
+    // the pg_advisory_xact_lock makes that postgres only processes one request at a time
+    @Query(value = "select 1 from pg_advisory_xact_lock(:classId, :objectId)", nativeQuery = true)
+    Integer acquireAdvisoryTransactionLock(@Param("classId") int classId, @Param("objectId") int objectId);
+
     List<ReservationJpaEntity> findByReservationDateAndCancelledAtIsNull(LocalDate reservationDate);
 
     List<ReservationJpaEntity> findBySpaceIdAndReservationDateAndCancelledAtIsNull(UUID spaceId, LocalDate reservationDate);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDateBetweenAndCancelledAtIsNull(
+            UUID spaceId, LocalDate from, LocalDate to);
 
     List<ReservationJpaEntity> findByUserIdAndReservationDateAndCancelledAtIsNull(UUID userId, LocalDate reservationDate);
 
     Optional<ReservationJpaEntity> findByQrCodeData(String qrCodeData);
 
+    Optional<ReservationJpaEntity> findByReservationDateAndConfirmationCodeAndCancelledAtIsNull(
+            LocalDate reservationDate, String confirmationCode);
+
+    boolean existsByReservationDateAndConfirmationCodeAndCancelledAtIsNull(LocalDate reservationDate, String confirmationCode);
+
     List<ReservationJpaEntity> findBySpaceIdAndCancelledAtIsNull(UUID spaceId);
+
+    List<ReservationJpaEntity> findBySpaceIdAndReservationDate(UUID spaceId, LocalDate reservationDate);
 }

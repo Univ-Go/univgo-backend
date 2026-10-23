@@ -42,7 +42,7 @@ class SetSpaceMaintenanceServiceTest {
 
     @Test
     void takingASpaceOutOfServiceClosesItWithNoEndDate() {
-        when(spaceRepositoryPort.existsById(SPACE_ID)).thenReturn(true);
+        when(spaceRepositoryPort.existsActiveById(SPACE_ID)).thenReturn(true);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of());
 
         service.execute(SPACE_ID, true, ADMIN_ID);
@@ -56,7 +56,7 @@ class SetSpaceMaintenanceServiceTest {
 
     @Test
     void switchingItOnTwiceDoesNotStackClosuresToRevertOneByOne() {
-        when(spaceRepositoryPort.existsById(SPACE_ID)).thenReturn(true);
+        when(spaceRepositoryPort.existsActiveById(SPACE_ID)).thenReturn(true);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of(indefiniteClosure()));
 
         service.execute(SPACE_ID, true, ADMIN_ID);
@@ -67,7 +67,7 @@ class SetSpaceMaintenanceServiceTest {
     @Test
     void handingTheSpaceBackRevertsTheClosureThatHadNoEndDate() {
         SpaceClosure closure = indefiniteClosure();
-        when(spaceRepositoryPort.existsById(SPACE_ID)).thenReturn(true);
+        when(spaceRepositoryPort.existsActiveById(SPACE_ID)).thenReturn(true);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of(closure));
 
         service.execute(SPACE_ID, false, ADMIN_ID);
@@ -80,7 +80,7 @@ class SetSpaceMaintenanceServiceTest {
     @Test
     void handingTheSpaceBackLeavesAPlannedWindowAlone() {
         SpaceClosure nextTuesday = closure(LocalDateTime.now().plusDays(3), LocalDateTime.now().plusDays(4));
-        when(spaceRepositoryPort.existsById(SPACE_ID)).thenReturn(true);
+        when(spaceRepositoryPort.existsActiveById(SPACE_ID)).thenReturn(true);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of(nextTuesday));
 
         service.execute(SPACE_ID, false, ADMIN_ID);
@@ -91,7 +91,7 @@ class SetSpaceMaintenanceServiceTest {
 
     @Test
     void throwsWhenSpaceDoesNotExist() {
-        when(spaceRepositoryPort.existsById(SPACE_ID)).thenReturn(false);
+        when(spaceRepositoryPort.existsActiveById(SPACE_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.execute(SPACE_ID, true, ADMIN_ID)).isInstanceOf(SpaceNotFoundException.class);
         verify(spaceClosureRepositoryPort, never()).save(any());

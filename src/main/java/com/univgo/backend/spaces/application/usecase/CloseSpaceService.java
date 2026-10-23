@@ -26,7 +26,7 @@ public class CloseSpaceService implements CloseSpaceUseCase {
 
     @Override
     public SpaceClosure execute(CloseSpaceCommand command) {
-        if (!spaceRepositoryPort.existsById(command.spaceId())) {
+        if (!spaceRepositoryPort.existsActiveById(command.spaceId())) {
             throw new SpaceNotFoundException(command.spaceId());
         }
 

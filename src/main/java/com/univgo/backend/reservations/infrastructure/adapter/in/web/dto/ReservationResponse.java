@@ -17,6 +17,7 @@ import java.util.UUID;
 public record ReservationResponse(
         UUID id,
         String qrCodeData,
+        String confirmationCode,
         UUID userId,
         UUID spaceId,
         LocalDate reservationDate,
@@ -48,6 +49,7 @@ public record ReservationResponse(
         return new ReservationResponse(
                 reservation.getId(),
                 reservation.getQrCodeData(),
+                reservation.getConfirmationCode(),
                 reservation.getUserId(),
                 reservation.getSpaceId(),
                 reservation.getReservationDate(),
@@ -59,7 +61,7 @@ public record ReservationResponse(
                 reservation.getCancelledAt(),
                 status.cancelledBy(),
                 status.closureReason(),
-                reservation.checkInOpensAt(config.tolerance()),
+                reservation.checkInOpensAt(),
                 reservation.checkInClosesAt(config.tolerance(), config.minUsage()),
                 cancellationDeadline,
                 status.state() == ReservationState.RESERVED && !now.isAfter(cancellationDeadline));

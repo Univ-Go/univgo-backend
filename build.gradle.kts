@@ -43,6 +43,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
+    // --- Reportes Excel ---
+    implementation("org.apache.poi:poi-ooxml:5.4.1")
+
     // --- Mapeo entre capas (domain <-> dto/entity, encaja con puertos hexagonal) ---
     implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
@@ -58,6 +61,13 @@ dependencies {
     // --- Almacenamiento de imágenes (S3-compatible, bucket en Neon) ---
     implementation(platform("software.amazon.awssdk:bom:2.55.0"))
     implementation("software.amazon.awssdk:s3")
+
+    // --- Image resizing on upload ---
+    // ImageIO alone ignores the EXIF orientation tag, so every portrait photo taken on a phone
+    // comes out rotated, and a single drawImage from 4000 to 640 px aliases badly. Thumbnailator
+    // does progressive downscale and honours EXIF; it is pure Java with no transitive dependencies,
+    // so the container needs nothing installed.
+    implementation("net.coobird:thumbnailator:0.4.20")
 
     // --- Config ---
     developmentOnly("org.springframework.boot:spring-boot-devtools")

@@ -79,7 +79,7 @@ class GetSpaceAvailabilityServiceTest {
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
                 new SpaceDetails("Sala de musculación y cardio", List.of()));
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -107,7 +107,7 @@ class GetSpaceAvailabilityServiceTest {
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
                 new SpaceDetails("Sala de musculación y cardio", List.of()));
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -131,7 +131,7 @@ class GetSpaceAvailabilityServiceTest {
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
                 new SpaceDetails("Sala de musculación y cardio", List.of()));
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -158,7 +158,7 @@ class GetSpaceAvailabilityServiceTest {
                 UUID.randomUUID(),
                 SpaceCategory.SPORTS,
                 new SpaceDetails("Sala de musculación y cardio", List.of()));
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
+        when(spaceRepositoryPort.findActiveById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findBySpaceIdAndDayOfWeek(any(), anyInt()))
                 .thenReturn(List.of(new SpaceSchedule(UUID.randomUUID(), SPACE_ID, 1, LocalTime.of(14, 0), LocalTime.of(16, 0))));
@@ -193,6 +193,7 @@ class GetSpaceAvailabilityServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 userId,
                 SPACE_ID,
                 new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),

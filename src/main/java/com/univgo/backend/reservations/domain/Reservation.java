@@ -16,6 +16,7 @@ public class Reservation {
 
     private final UUID id;
     private final String qrCodeData;
+    private final String confirmationCode;
     private final UUID userId;
     private final UUID spaceId;
     private final ReservationSchedule schedule;
@@ -25,6 +26,7 @@ public class Reservation {
     public Reservation(
             UUID id,
             String qrCodeData,
+            String confirmationCode,
             UUID userId,
             UUID spaceId,
             ReservationSchedule schedule,
@@ -32,6 +34,7 @@ public class Reservation {
             ReservationCheckpoint checkpoint) {
         this.id = id;
         this.qrCodeData = qrCodeData;
+        this.confirmationCode = confirmationCode;
         this.userId = userId;
         this.spaceId = spaceId;
         this.schedule = schedule;
@@ -73,8 +76,8 @@ public class Reservation {
         this.checkpoint = checkpoint.withCheckIn(now);
     }
 
-    public LocalDateTime checkInOpensAt(Duration tolerance) {
-        return ReservationTimingCalculator.checkInOpensAt(schedule.startDateTime(), createdAt, tolerance);
+    public LocalDateTime checkInOpensAt() {
+        return ReservationTimingCalculator.checkInOpensAt(schedule.startDateTime(), createdAt);
     }
 
     public LocalDateTime checkInClosesAt(Duration tolerance, Duration minUsage) {
@@ -88,6 +91,10 @@ public class Reservation {
 
     public String getQrCodeData() {
         return qrCodeData;
+    }
+
+    public String getConfirmationCode() {
+        return confirmationCode;
     }
 
     public UUID getUserId() {

@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -48,7 +49,43 @@ public class SpaceJpaEntity {
     @JoinColumn(name = "space_type_id", insertable = false, updatable = false)
     private SpaceTypeJpaEntity spaceType;
 
+    /**
+     * When the space was retired, and by whom. Readable only from inside this package — the
+     * getter is deliberately not public — because whether a space is archived is a question the
+     * repository answers through {@code findAllActive} and the panel's own read model, not something
+     * a caller holding a {@code Space} can branch on. Keeping it off the domain object is what stops
+     * every consumer from having to remember the check.
+     */
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "archived_by")
+    private UUID archivedBy;
+
     protected SpaceJpaEntity() {
+    }
+
+    /**
+     * Writing a space means replacing its row whole, the same way {@code SpaceClosureJpaEntity}
+     * does it: an all-args constructor and no setters, so a loaded entity can never be mutated in
+     * place. {@code spaceType} is left null here on purpose — its mapping is read-only, so the
+     * {@code space_type_id} column above remains the single thing that decides the type.
+     */
+    public SpaceJpaEntity(
+            UUID id,
+            String name,
+            String location,
+            Integer capacity,
+            UUID spaceTypeId,
+            String description,
+            String[] rules) {
+        this.id = id;
+        this.name = name;
+        this.location = location;
+        this.capacity = capacity;
+        this.spaceTypeId = spaceTypeId;
+        this.description = description;
+        this.rules = rules.clone();
     }
 
     public UUID getId() {
@@ -81,6 +118,10 @@ public class SpaceJpaEntity {
 
     public SpaceTypeJpaEntity getSpaceType() {
         return spaceType;
+    }
+
+    LocalDateTime getArchivedAt() {
+        return archivedAt;
     }
 
 }

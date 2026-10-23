@@ -38,7 +38,7 @@ public class SetSpaceMaintenanceService implements SetSpaceMaintenanceUseCase {
 
     @Override
     public void execute(UUID spaceId, boolean underMaintenance, UUID actor) {
-        if (!spaceRepositoryPort.existsById(spaceId)) {
+        if (!spaceRepositoryPort.existsActiveById(spaceId)) {
             throw new SpaceNotFoundException(spaceId);
         }
 

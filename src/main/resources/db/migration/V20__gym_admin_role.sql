@@ -1,0 +1,16 @@
+-- GYM_ADMIN: runs the door at the weight room — scans QR codes, reads that room's own
+-- occupancy/roster/closure data, and can book a walk-in student who shows up without the app.
+-- Not ADMIN: no other space's roster, no institution config, no user management, no
+-- maintenance/closure/cancel-all on any room (including the gym itself — opening/closing stays
+-- an ADMIN decision).
+--
+-- Only the roles row is seeded. permissions/role_permissions (V3/V4) are schema nothing in the
+-- application reads today — authorization is role-name -> JWT claim -> ROLE_<name> authority,
+-- independent of those tables. Seeding unread rows here would document enforcement that doesn't
+-- exist.
+--
+-- No SpaceCategory.GYM: there is exactly one gym space today (id 9dabc028-466a-4ac0-8693-5c78b4b59929,
+-- 'Gimnasio' / 'Gimnasio de Pesas', see V15/V17) and its category is SPORTS same as every court
+-- (V11 set every space_types row to SPORTS), so category couldn't distinguish it anyway. Its scoping
+-- lives in a single constant in the web adapter (GymSpaceAccessGuard.GYM_SPACE_ID), not in the schema.
+INSERT INTO roles (name) VALUES ('GYM_ADMIN');

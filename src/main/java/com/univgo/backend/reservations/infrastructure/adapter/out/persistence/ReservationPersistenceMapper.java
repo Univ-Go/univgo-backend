@@ -14,6 +14,7 @@ final class ReservationPersistenceMapper {
         return new Reservation(
                 entity.getId(),
                 entity.getQrCodeData(),
+                entity.getConfirmationCode(),
                 entity.getUserId(),
                 entity.getSpaceId(),
                 new ReservationSchedule(
@@ -26,6 +27,7 @@ final class ReservationPersistenceMapper {
         return new ReservationJpaEntity(
                 reservation.getId(),
                 reservation.getQrCodeData(),
+                reservation.getConfirmationCode(),
                 reservation.getUserId(),
                 reservation.getSpaceId(),
                 new ReservationScheduleEmbeddable(

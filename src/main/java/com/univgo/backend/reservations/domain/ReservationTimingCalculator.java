@@ -35,10 +35,12 @@ public final class ReservationTimingCalculator {
         return !now.isAfter(cutoff);
     }
 
-    /** El check-in abre: max(inicio del bloque - tolerancia, hora de creación). */
-    public static LocalDateTime checkInOpensAt(LocalDateTime blockStart, LocalDateTime createdAt, Duration tolerance) {
-        LocalDateTime toleranceBeforeStart = blockStart.minus(tolerance);
-        return toleranceBeforeStart.isAfter(createdAt) ? toleranceBeforeStart : createdAt;
+    /**
+     * El check-in abre: max(inicio del bloque, hora de creación). Nunca antes de que el bloque
+     * empiece — la tolerancia es sólo el margen posterior, no una antesala.
+     */
+    public static LocalDateTime checkInOpensAt(LocalDateTime blockStart, LocalDateTime createdAt) {
+        return blockStart.isAfter(createdAt) ? blockStart : createdAt;
     }
 
     /** El check-in cierra: min(max(inicio del bloque, hora de creación) + tolerancia, fin del bloque - uso_mínimo). */

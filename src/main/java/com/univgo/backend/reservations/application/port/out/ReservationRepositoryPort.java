@@ -17,6 +17,11 @@ public interface ReservationRepositoryPort {
 
     Optional<Reservation> findByQrCodeData(String qrCodeData);
 
+    /** Codes are unique per day among reservations that still stand; cancelled ones gave theirs back. */
+    Optional<Reservation> findActiveByConfirmationCode(LocalDate date, String confirmationCode);
+
+    boolean existsActiveConfirmationCode(LocalDate date, String confirmationCode);
+
     Reservation save(Reservation reservation);
 
     boolean existsOverlappingForUser(UUID userId, LocalDate date, LocalTime startTime, LocalTime endTime);
@@ -24,6 +29,8 @@ public interface ReservationRepositoryPort {
     long countActiveByUserSpaceAndDate(UUID userId, UUID spaceId, LocalDate date);
 
     List<Reservation> findActiveByBlock(UUID spaceId, LocalDate date, LocalTime startTime, LocalTime endTime);
+
+    void lockBlockForBooking(UUID spaceId, LocalDate date, LocalTime startTime);
 
     /**
      * Every active reservation of a day, across spaces. Reading a whole day at once is what keeps the
@@ -33,7 +40,13 @@ public interface ReservationRepositoryPort {
 
     List<Reservation> findActiveBySpaceAndDate(UUID spaceId, LocalDate date);
 
+    /** One query for a whole date range instead of one per day — the range summary's reason to exist. */
+    List<Reservation> findActiveBySpaceAndDateRange(UUID spaceId, LocalDate from, LocalDate to);
+
     List<Reservation> findActiveByUserAndDate(UUID userId, LocalDate date);
 
     List<Reservation> findActiveBySpaceId(UUID spaceId);
+
+    /** Cancelled ones included: the aforo report counts them. */
+    List<Reservation> findBySpaceAndDate(UUID spaceId, LocalDate date);
 }

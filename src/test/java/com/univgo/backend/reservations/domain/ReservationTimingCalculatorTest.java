@@ -40,20 +40,29 @@ class ReservationTimingCalculatorTest {
     }
 
     @Test
-    void earlyReservationOpensFifteenMinutesBeforeAndClosesFifteenAfter() {
+    void earlyReservationOpensAtTheBlockStartAndClosesFifteenAfter() {
         LocalDateTime createdYesterday = LocalDateTime.of(DATE.minusDays(1), LocalTime.of(9, 0));
 
-        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdYesterday, TOLERANCE))
-                .isEqualTo(LocalDateTime.of(DATE, LocalTime.of(13, 45)));
+        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdYesterday))
+                .isEqualTo(BLOCK_START);
         assertThat(ReservationTimingCalculator.checkInClosesAt(BLOCK_START, BLOCK_END, createdYesterday, TOLERANCE, MIN_USAGE))
                 .isEqualTo(LocalDateTime.of(DATE, LocalTime.of(14, 15)));
+    }
+
+    @Test
+    void reservationCreatedMinutesBeforeTheBlockStillWaitsForItToStart() {
+        // The old rule opened the window at creation here, because creation fell inside the
+        // tolerance before the start. Nothing opens before the block does any more.
+        LocalDateTime createdAt = LocalDateTime.of(DATE, LocalTime.of(13, 50));
+
+        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdAt)).isEqualTo(BLOCK_START);
     }
 
     @Test
     void lastMinuteReservationCreatedAtFourteenTwentyTwoOpensImmediatelyAndClosesAtFourteenThirtySeven() {
         LocalDateTime createdAt = LocalDateTime.of(DATE, LocalTime.of(14, 22));
 
-        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdAt, TOLERANCE)).isEqualTo(createdAt);
+        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdAt)).isEqualTo(createdAt);
         assertThat(ReservationTimingCalculator.checkInClosesAt(BLOCK_START, BLOCK_END, createdAt, TOLERANCE, MIN_USAGE))
                 .isEqualTo(LocalDateTime.of(DATE, LocalTime.of(14, 37)));
     }
@@ -62,7 +71,7 @@ class ReservationTimingCalculatorTest {
     void lastPossibleReservationCreatedAtFourteenThirtyClosesAtFourteenFortyFive() {
         LocalDateTime createdAt = LocalDateTime.of(DATE, LocalTime.of(14, 30));
 
-        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdAt, TOLERANCE)).isEqualTo(createdAt);
+        assertThat(ReservationTimingCalculator.checkInOpensAt(BLOCK_START, createdAt)).isEqualTo(createdAt);
         assertThat(ReservationTimingCalculator.checkInClosesAt(BLOCK_START, BLOCK_END, createdAt, TOLERANCE, MIN_USAGE))
                 .isEqualTo(LocalDateTime.of(DATE, LocalTime.of(14, 45)));
     }

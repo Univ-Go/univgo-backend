@@ -5,6 +5,7 @@ import com.univgo.backend.reservations.application.port.out.InstitutionConfigRep
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.BlockCapacityFullException;
 import com.univgo.backend.reservations.domain.BlockNoLongerBookableException;
+import com.univgo.backend.reservations.domain.ConfirmationCodeGenerator;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.OccupancyCounter;
 import com.univgo.backend.reservations.domain.Reservation;
@@ -31,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CreateReservationService implements CreateReservationUseCase {
@@ -57,12 +59,18 @@ public class CreateReservationService implements CreateReservationUseCase {
         this.clock = clock;
     }
 
+    /**
+     the count, the check and the insert have to sit
+     inside the same transaction for the lock to still be held when the row lands.
+     for another user the differences are ms
+     */
     @Override
+    @Transactional
     public Reservation execute(CreateReservationCommand command) {
         UUID spaceId = command.spaceId();
         LocalDate date = command.reservationDate();
 
-        Space space = spaceRepositoryPort.findById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
+        Space space = spaceRepositoryPort.findActiveById(spaceId).orElseThrow(() -> new SpaceNotFoundException(spaceId));
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
 
@@ -95,6 +103,11 @@ public class CreateReservationService implements CreateReservationUseCase {
             throw new ReservationOverlapException();
         }
 
+        // Aforo is the one gate decided against a figure that other bookings move. Taken here and
+        // not earlier, so the cheap refusals above never make anybody queue; held to commit, so the
+        // last plaza cannot be counted free by two requests at once and sold twice.
+        reservationRepositoryPort.lockBlockForBooking(spaceId, date, block.start());
+
         long occupied = countOccupiedPlazas(spaceId, date, block, now, config, closures);
         if (occupied >= space.getCapacity()) {
             throw new BlockCapacityFullException(spaceId, date, block.start(), block.end());
@@ -103,6 +116,7 @@ public class CreateReservationService implements CreateReservationUseCase {
         Reservation reservation = new Reservation(
                 Uuidv7Generator.generate(),
                 UUID.randomUUID().toString(),
+                freeConfirmationCode(date),
                 command.userId(),
                 spaceId,
                 new ReservationSchedule(date, block),
@@ -110,6 +124,16 @@ public class CreateReservationService implements CreateReservationUseCase {
                 ReservationCheckpoint.initial());
 
         return reservationRepositoryPort.save(reservation);
+    }
+
+    // Checking first keeps the unique index from ever firing in practice. Two bookings drawing the same
+    // code in the same instant still can; the index refuses the second and the controller retries it.
+    private String freeConfirmationCode(LocalDate date) {
+        String code;
+        do {
+            code = ConfirmationCodeGenerator.generate();
+        } while (reservationRepositoryPort.existsActiveConfirmationCode(date, code));
+        return code;
     }
 
     private TimeBlock findRequestedBlock(CreateReservationCommand command, InstitutionConfig config) {

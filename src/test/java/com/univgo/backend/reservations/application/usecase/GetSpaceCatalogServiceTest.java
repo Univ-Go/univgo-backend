@@ -15,7 +15,7 @@ import com.univgo.backend.reservations.domain.ReservationCheckpoint;
 import com.univgo.backend.reservations.domain.ReservationSchedule;
 import com.univgo.backend.reservations.domain.SpaceCatalogItem;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
-import com.univgo.backend.spaces.application.port.out.SpaceImageRepositoryPort;
+import com.univgo.backend.spaces.application.port.in.GetSpaceImagesUseCase;
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.application.port.out.SpaceScheduleRepositoryPort;
 import com.univgo.backend.spaces.domain.Space;
@@ -26,6 +26,7 @@ import com.univgo.backend.spaces.domain.ClosureReversion;
 import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceDetails;
+import com.univgo.backend.spaces.domain.SpaceImageView;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
@@ -64,7 +65,7 @@ class GetSpaceCatalogServiceTest {
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
     @Mock
-    private SpaceImageRepositoryPort spaceImageRepositoryPort;
+    private GetSpaceImagesUseCase getSpaceImagesUseCase;
 
     @Spy
     private Clock clock = Clock.systemDefaultZone();
@@ -74,7 +75,7 @@ class GetSpaceCatalogServiceTest {
 
     @BeforeEach
     void noImagesUnlessATestSaysOtherwise() {
-        lenient().when(spaceImageRepositoryPort.findAllImageUrls()).thenReturn(Map.of());
+        lenient().when(getSpaceImagesUseCase.allBySpace()).thenReturn(Map.of());
     }
 
     private static final UUID SPACE_ID = UUID.randomUUID();
@@ -85,7 +86,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void describesTheSpaceAndListsEveryBlockThatStillHasRoom() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
@@ -132,7 +133,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void leavesOutBlocksWhoseCapacityIsFull() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(1)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(1)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of(activeReservation()));
@@ -144,7 +145,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void offersNothingOnADayThatAlreadyPassed() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(PAST_DATE)).thenReturn(List.of());
@@ -159,7 +160,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void aSpaceClosedWithNoEndDateOffersNoBlocksAndSaysSo() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
@@ -174,7 +175,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void aClosureOfOneAfternoonOnlyTakesOutTheBlocksItCovers() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
@@ -192,7 +193,7 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void aSpaceWithNoPhotographsUploadedGetsAnEmptyList() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
@@ -204,16 +205,23 @@ class GetSpaceCatalogServiceTest {
 
     @Test
     void carriesTheSpacesPhotographsFromTheImagePort() {
-        when(spaceRepositoryPort.findAll()).thenReturn(List.of(space(30)));
+        when(spaceRepositoryPort.findAllActive()).thenReturn(List.of(space(30)));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceScheduleRepositoryPort.findByDayOfWeek(anyInt())).thenReturn(openFrom(14, 18));
         when(reservationRepositoryPort.findActiveByDate(FUTURE_DATE)).thenReturn(List.of());
-        when(spaceImageRepositoryPort.findAllImageUrls())
-                .thenReturn(Map.of(SPACE_ID, List.of("https://example.com/cover.webp")));
+        when(getSpaceImagesUseCase.allBySpace())
+                .thenReturn(Map.of(SPACE_ID, List.of(imageView("https://example.com/cover.jpg"))));
 
         List<SpaceCatalogItem> result = service.execute(FUTURE_DATE);
 
-        assertThat(result.getFirst().images()).containsExactly("https://example.com/cover.webp");
+        assertThat(result.getFirst().images())
+                .singleElement()
+                .extracting(SpaceImageView::smallestUrl)
+                .isEqualTo("https://example.com/cover.jpg");
+    }
+
+    private static SpaceImageView imageView(String url) {
+        return new SpaceImageView(UUID.randomUUID(), 0, Map.of(640, url), 640, 480);
     }
 
     private static SpaceClosure indefiniteClosure() {
@@ -251,6 +259,7 @@ class GetSpaceCatalogServiceTest {
         return new Reservation(
                 UUID.randomUUID(),
                 UUID.randomUUID().toString(),
+                null,
                 UUID.randomUUID(),
                 SPACE_ID,
                 new ReservationSchedule(FUTURE_DATE, new TimeBlock(LocalTime.of(14, 0), LocalTime.of(16, 0))),
