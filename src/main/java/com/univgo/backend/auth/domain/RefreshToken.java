@@ -19,27 +19,87 @@ public class RefreshToken {
     private String revokedReason;
     private UUID replacedById;
 
-    public RefreshToken(
-            UUID id,
-            UUID userId,
-            String tokenHash,
-            Instant expiresAt,
-            Instant createdAt,
-            Instant revokedAt,
-            String revokedReason,
-            UUID replacedById) {
-        this.id = id;
-        this.userId = userId;
-        this.tokenHash = tokenHash;
-        this.expiresAt = expiresAt;
-        this.createdAt = createdAt;
-        this.revokedAt = revokedAt;
-        this.revokedReason = revokedReason;
-        this.replacedById = replacedById;
+    private RefreshToken(Builder builder) {
+        this.id = builder.id;
+        this.userId = builder.userId;
+        this.tokenHash = builder.tokenHash;
+        this.expiresAt = builder.expiresAt;
+        this.createdAt = builder.createdAt;
+        this.revokedAt = builder.revokedAt;
+        this.revokedReason = builder.revokedReason;
+        this.replacedById = builder.replacedById;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public static RefreshToken issue(UUID userId, String tokenHash, Instant expiresAt) {
-        return new RefreshToken(UUID.randomUUID(), userId, tokenHash, expiresAt, Instant.now(), null, null, null);
+        return builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .tokenHash(tokenHash)
+                .expiresAt(expiresAt)
+                .createdAt(Instant.now())
+                .build();
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private UUID userId;
+        private String tokenHash;
+        private Instant expiresAt;
+        private Instant createdAt;
+        private Instant revokedAt;
+        private String revokedReason;
+        private UUID replacedById;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder userId(UUID userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder tokenHash(String tokenHash) {
+            this.tokenHash = tokenHash;
+            return this;
+        }
+
+        public Builder expiresAt(Instant expiresAt) {
+            this.expiresAt = expiresAt;
+            return this;
+        }
+
+        public Builder createdAt(Instant createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder revokedAt(Instant revokedAt) {
+            this.revokedAt = revokedAt;
+            return this;
+        }
+
+        public Builder revokedReason(String revokedReason) {
+            this.revokedReason = revokedReason;
+            return this;
+        }
+
+        public Builder replacedById(UUID replacedById) {
+            this.replacedById = replacedById;
+            return this;
+        }
+
+        public RefreshToken build() {
+            return new RefreshToken(this);
+        }
     }
 
     public void revoke(String reason) {

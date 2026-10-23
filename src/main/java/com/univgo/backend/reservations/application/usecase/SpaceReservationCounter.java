@@ -5,6 +5,7 @@ import com.univgo.backend.reservations.application.port.out.ReservationRepositor
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.ReservationState;
 import com.univgo.backend.spaces.application.port.out.SpaceReservationCounterPort;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -23,18 +24,21 @@ public class SpaceReservationCounter implements SpaceReservationCounterPort {
 
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final Clock clock;
 
     public SpaceReservationCounter(
             ReservationRepositoryPort reservationRepositoryPort,
-            InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
     public int countSuspendable(UUID spaceId) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         return (int) reservationRepositoryPort.findActiveBySpaceId(spaceId).stream()
                 .filter(reservation ->

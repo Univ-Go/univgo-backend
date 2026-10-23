@@ -85,8 +85,9 @@ class ReorderSpaceImagesServiceTest {
     @Test
     void refusesASubsetBecauseItWouldLeaveTheRestUndefined() {
         existingThree();
+        List<UUID> subset = List.of(THIRD, FIRST);
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, List.of(THIRD, FIRST)))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, subset))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(spaceImageRepositoryPort, never()).saveAll(anyList());
@@ -95,8 +96,9 @@ class ReorderSpaceImagesServiceTest {
     @Test
     void refusesAPhotographThatBelongsToAnotherSpace() {
         existingThree();
+        List<UUID> withForeignId = List.of(FIRST, SECOND, UUID.randomUUID());
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, List.of(FIRST, SECOND, UUID.randomUUID())))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, withForeignId))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(spaceImageRepositoryPort, never()).saveAll(anyList());
@@ -105,8 +107,9 @@ class ReorderSpaceImagesServiceTest {
     @Test
     void refusesADuplicatedId() {
         existingThree();
+        List<UUID> withDuplicate = List.of(FIRST, FIRST, SECOND);
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, List.of(FIRST, FIRST, SECOND)))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, withDuplicate))
                 .isInstanceOf(IllegalArgumentException.class);
 
         verify(spaceImageRepositoryPort, never()).saveAll(anyList());

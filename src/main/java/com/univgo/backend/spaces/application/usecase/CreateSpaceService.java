@@ -67,15 +67,16 @@ public class CreateSpaceService implements CreateSpaceUseCase {
         UUID spaceId = Uuidv7Generator.generate();
         SpaceScheduleSet windows = toScheduleSet(spaceId, command.schedules());
 
-        spaceRepositoryPort.save(new Space(
-                spaceId,
-                command.name(),
-                command.location(),
-                command.capacity(),
-                type.id(),
-                type.category(),
-                command.description(),
-                command.rules()));
+        spaceRepositoryPort.save(Space.builder()
+                .id(spaceId)
+                .name(command.name())
+                .location(command.location())
+                .capacity(command.capacity())
+                .spaceTypeId(type.id())
+                .category(type.category())
+                .description(command.description())
+                .rules(command.rules())
+                .build());
         spaceScheduleRepositoryPort.replaceAll(spaceId, windows.getWindows());
         spaceImageWriter.store(spaceId, command.photos(), 0, command.actor());
 

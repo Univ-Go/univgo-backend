@@ -48,30 +48,32 @@ public class SpaceClosureRepositoryAdapter implements SpaceClosureRepositoryPort
     }
 
     private static SpaceClosureJpaEntity toEntity(SpaceClosure closure) {
-        return new SpaceClosureJpaEntity(
-                closure.getId(),
-                closure.getSpaceId(),
-                closure.getStartsAt(),
-                closure.getEndsAt(),
-                closure.getReason(),
-                closure.getDetails(),
-                closure.getCreatedBy(),
-                closure.getCreatedAt(),
-                closure.getRevertedAt(),
-                closure.getRevertedBy());
+        return SpaceClosureJpaEntity.builder()
+                .id(closure.getId())
+                .spaceId(closure.getSpaceId())
+                .startsAt(closure.getStartsAt())
+                .endsAt(closure.getEndsAt())
+                .reason(closure.getReason())
+                .details(closure.getDetails())
+                .createdBy(closure.getCreatedBy())
+                .createdAt(closure.getCreatedAt())
+                .revertedAt(closure.getRevertedAt())
+                .revertedBy(closure.getRevertedBy())
+                .build();
     }
 
     private static SpaceClosure toDomain(SpaceClosureJpaEntity entity) {
-        return new SpaceClosure(
-                entity.getId(),
-                entity.getSpaceId(),
-                entity.getStartsAt(),
-                entity.getEndsAt(),
-                entity.getReason(),
-                entity.getDetails(),
-                entity.getCreatedBy(),
-                entity.getCreatedAt(),
-                entity.getRevertedAt(),
-                entity.getRevertedBy());
+        return SpaceClosure.builder()
+                .id(entity.getId())
+                .spaceId(entity.getSpaceId())
+                .startsAt(entity.getStartsAt())
+                .endsAt(entity.getEndsAt())
+                .reason(entity.getReason())
+                .details(entity.getDetails())
+                .createdBy(entity.getCreatedBy())
+                .createdAt(entity.getCreatedAt())
+                .revertedAt(entity.getRevertedAt())
+                .revertedBy(entity.getRevertedBy())
+                .build();
     }
 }

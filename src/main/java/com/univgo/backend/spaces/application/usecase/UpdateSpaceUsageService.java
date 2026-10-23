@@ -21,14 +21,15 @@ public class UpdateSpaceUsageService implements UpdateSpaceUsageUseCase {
                 .findById(command.spaceId())
                 .orElseThrow(() -> new SpaceNotFoundException(command.spaceId()));
 
-        spaceRepositoryPort.save(new Space(
-                existing.getId(),
-                existing.getName(),
-                existing.getLocation(),
-                existing.getCapacity(),
-                existing.getSpaceTypeId(),
-                existing.getCategory(),
-                command.description(),
-                command.rules()));
+        spaceRepositoryPort.save(Space.builder()
+                .id(existing.getId())
+                .name(existing.getName())
+                .location(existing.getLocation())
+                .capacity(existing.getCapacity())
+                .spaceTypeId(existing.getSpaceTypeId())
+                .category(existing.getCategory())
+                .description(command.description())
+                .rules(command.rules())
+                .build());
     }
 }

@@ -73,27 +73,17 @@ public class AdminSpaceCrudController {
     private final ArchiveSpaceUseCase archiveSpaceUseCase;
     private final RestoreSpaceUseCase restoreSpaceUseCase;
 
-    public AdminSpaceCrudController(
-            GetAdminSpacesUseCase getAdminSpacesUseCase,
-            CreateSpaceUseCase createSpaceUseCase,
-            UpdateSpaceIdentityUseCase updateSpaceIdentityUseCase,
-            UpdateSpaceUsageUseCase updateSpaceUsageUseCase,
-            ReplaceSpaceSchedulesUseCase replaceSpaceSchedulesUseCase,
-            AddSpaceImagesUseCase addSpaceImagesUseCase,
-            DeleteSpaceImageUseCase deleteSpaceImageUseCase,
-            ReorderSpaceImagesUseCase reorderSpaceImagesUseCase,
-            ArchiveSpaceUseCase archiveSpaceUseCase,
-            RestoreSpaceUseCase restoreSpaceUseCase) {
-        this.getAdminSpacesUseCase = getAdminSpacesUseCase;
-        this.createSpaceUseCase = createSpaceUseCase;
-        this.updateSpaceIdentityUseCase = updateSpaceIdentityUseCase;
-        this.updateSpaceUsageUseCase = updateSpaceUsageUseCase;
-        this.replaceSpaceSchedulesUseCase = replaceSpaceSchedulesUseCase;
-        this.addSpaceImagesUseCase = addSpaceImagesUseCase;
-        this.deleteSpaceImageUseCase = deleteSpaceImageUseCase;
-        this.reorderSpaceImagesUseCase = reorderSpaceImagesUseCase;
-        this.archiveSpaceUseCase = archiveSpaceUseCase;
-        this.restoreSpaceUseCase = restoreSpaceUseCase;
+    public AdminSpaceCrudController(AdminSpaceCrudUseCases useCases) {
+        this.getAdminSpacesUseCase = useCases.getAdminSpacesUseCase();
+        this.createSpaceUseCase = useCases.createSpaceUseCase();
+        this.updateSpaceIdentityUseCase = useCases.updateSpaceIdentityUseCase();
+        this.updateSpaceUsageUseCase = useCases.updateSpaceUsageUseCase();
+        this.replaceSpaceSchedulesUseCase = useCases.replaceSpaceSchedulesUseCase();
+        this.addSpaceImagesUseCase = useCases.addSpaceImagesUseCase();
+        this.deleteSpaceImageUseCase = useCases.deleteSpaceImageUseCase();
+        this.reorderSpaceImagesUseCase = useCases.reorderSpaceImagesUseCase();
+        this.archiveSpaceUseCase = useCases.archiveSpaceUseCase();
+        this.restoreSpaceUseCase = useCases.restoreSpaceUseCase();
     }
 
     @GetMapping

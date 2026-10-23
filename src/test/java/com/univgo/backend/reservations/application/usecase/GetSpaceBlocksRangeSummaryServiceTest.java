@@ -67,8 +67,16 @@ class GetSpaceBlocksRangeSummaryServiceTest {
 
     @Test
     void sumsCapacityAndFreeSeatsPerDayAcrossTheRange_zeroOnDaysWithNoBlocks() {
-        Space space = new Space(
-                SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, "desc", List.of());
+        Space space = Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("desc")
+                .rules(List.of())
+                .build();
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of());
@@ -108,18 +116,15 @@ class GetSpaceBlocksRangeSummaryServiceTest {
     }
 
     private static Reservation activeReservation(LocalDate date) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                UUID.randomUUID(),
-                SPACE_ID,
-                date,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .reservationDate(date)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

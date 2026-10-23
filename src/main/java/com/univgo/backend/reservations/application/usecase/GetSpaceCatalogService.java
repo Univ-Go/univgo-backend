@@ -20,6 +20,7 @@ import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceImageView;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
 import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -47,6 +48,7 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
     private final GetSpaceImagesUseCase getSpaceImagesUseCase;
+    private final Clock clock;
 
     public GetSpaceCatalogService(
             SpaceRepositoryPort spaceRepositoryPort,
@@ -54,19 +56,32 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
             ReservationRepositoryPort reservationRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
             SpaceClosureRepositoryPort spaceClosureRepositoryPort,
-            GetSpaceImagesUseCase getSpaceImagesUseCase) {
+            GetSpaceImagesUseCase getSpaceImagesUseCase,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
         this.getSpaceImagesUseCase = getSpaceImagesUseCase;
+        this.clock = clock;
+    }
+
+    /** Everything a catalog item needs besides the space itself, fixed for the whole request. */
+    private record CatalogContext(
+            LocalDate date,
+            LocalDateTime now,
+            InstitutionConfig config,
+            Map<UUID, List<SpaceSchedule>> schedules,
+            BlockReservations reservations,
+            SpaceClosures closures,
+            Map<UUID, List<SpaceImageView>> images) {
     }
 
     @Override
     public List<SpaceCatalogItem> execute(LocalDate date) {
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         Map<UUID, List<SpaceSchedule>> schedules = spaceScheduleRepositoryPort
                 .findByDayOfWeek(date.getDayOfWeek().getValue())
@@ -79,9 +94,10 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce());
         Map<UUID, List<SpaceImageView>> images = getSpaceImagesUseCase.allBySpace();
 
+        CatalogContext context = new CatalogContext(date, now, config, schedules, reservations, closures, images);
+
         return spaceRepositoryPort.findAllActive().stream()
-                .map(space -> toCatalogItem(
-                        space, date, now, config, schedules, reservations, closures, images, false))
+                .map(space -> toCatalogItem(context, space, false))
                 .toList();
     }
 
@@ -95,30 +111,26 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 .stream()
                 .collect(Collectors.groupingBy(SpaceSchedule::getSpaceId));
 
-        return toCatalogItem(
-                space,
+        CatalogContext context = new CatalogContext(
                 date,
-                LocalDateTime.now(),
+                LocalDateTime.now(clock),
                 institutionConfigRepositoryPort.getCurrent(),
                 schedules,
                 BlockReservations.of(reservationRepositoryPort.findActiveByDate(date)),
                 SpaceClosures.of(spaceClosureRepositoryPort.findAllInForce()),
-                Map.of(space.getId(), getSpaceImagesUseCase.ofSpace(spaceId)),
-                archived);
+                Map.of(space.getId(), getSpaceImagesUseCase.ofSpace(spaceId)));
+
+        return toCatalogItem(context, space, archived);
     }
 
-    private SpaceCatalogItem toCatalogItem(
-            Space space,
-            LocalDate date,
-            LocalDateTime now,
-            InstitutionConfig config,
-            Map<UUID, List<SpaceSchedule>> schedules,
-            BlockReservations reservations,
-            SpaceClosures closures,
-            Map<UUID, List<SpaceImageView>> images,
-            boolean archived) {
+    private SpaceCatalogItem toCatalogItem(CatalogContext context, Space space, boolean archived) {
+        LocalDate date = context.date();
+        LocalDateTime now = context.now();
+        InstitutionConfig config = context.config();
+        SpaceClosures closures = context.closures();
+
         List<TimeBlock> blocks = BlockGenerator.generate(
-                schedules.getOrDefault(space.getId(), List.of()), config.blockDuration());
+                context.schedules().getOrDefault(space.getId(), List.of()), config.blockDuration());
 
         // Three different silences, told apart here because the catalog is where somebody decides
         // whether to walk over: a space with no hours that day, one that is shut, and a full one.
@@ -135,8 +147,8 @@ public class GetSpaceCatalogService implements GetSpaceCatalogUseCase, GetSpaceD
                 closures.shutAt(space.getId(), now),
                 opensOnDate,
                 closedOnDate,
-                freeBlockStarts(blocks, space, date, now, config, reservations, closures),
-                images.getOrDefault(space.getId(), List.of()),
+                freeBlockStarts(blocks, space, date, now, config, context.reservations(), closures),
+                context.images().getOrDefault(space.getId(), List.of()),
                 space.getDescription(),
                 space.getRules(),
                 archived);

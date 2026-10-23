@@ -28,11 +28,23 @@ class Uuidv7GeneratorTest {
     }
 
     @Test
-    void sortsRoughlyByCreationTimeUnlikeRandomUuids() throws InterruptedException {
+    void sortsRoughlyByCreationTimeUnlikeRandomUuids() {
         UUID first = Uuidv7Generator.generate();
-        Thread.sleep(5);
-        UUID second = Uuidv7Generator.generate();
+
+        // No sleep: busy-wait for the embedded millisecond itself to advance. Racing against
+        // System.currentTimeMillis() instead of the UUID's own timestamp would occasionally keep a
+        // "second" generated the instant before the tick, landing in the same millisecond as
+        // "first" — the generator has no monotonic counter, so same-millisecond values can sort
+        // either way on their random tail.
+        UUID second;
+        do {
+            second = Uuidv7Generator.generate();
+        } while (embeddedTimestamp(second) == embeddedTimestamp(first));
 
         assertThat(first).isLessThan(second);
+    }
+
+    private static long embeddedTimestamp(UUID uuid) {
+        return uuid.getMostSignificantBits() >>> 16;
     }
 }

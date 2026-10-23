@@ -107,8 +107,9 @@ class ThumbnailatorSpaceImageResizerTest {
     void rejectsASourceOverThePixelCeiling() {
         ThumbnailatorSpaceImageResizer tightResizer =
                 new ThumbnailatorSpaceImageResizer(new SpaceImageProperties(List.of(640), 8, 1_000L, 0.82f));
+        ImageUpload tooLarge = upload(jpeg(800, 600));
 
-        assertThatThrownBy(() -> tightResizer.resize(upload(jpeg(800, 600))))
+        assertThatThrownBy(() -> tightResizer.resize(tooLarge))
                 .isInstanceOf(UnreadableImageException.class)
                 .hasMessageContaining("too large");
     }

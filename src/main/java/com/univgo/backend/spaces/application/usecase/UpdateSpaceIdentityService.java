@@ -30,14 +30,15 @@ public class UpdateSpaceIdentityService implements UpdateSpaceIdentityUseCase {
                 .findById(command.spaceTypeId())
                 .orElseThrow(() -> new SpaceTypeNotFoundException(command.spaceTypeId()));
 
-        spaceRepositoryPort.save(new Space(
-                existing.getId(),
-                command.name(),
-                command.location(),
-                command.capacity(),
-                type.id(),
-                type.category(),
-                existing.getDescription(),
-                existing.getRules()));
+        spaceRepositoryPort.save(Space.builder()
+                .id(existing.getId())
+                .name(command.name())
+                .location(command.location())
+                .capacity(command.capacity())
+                .spaceTypeId(type.id())
+                .category(type.category())
+                .description(existing.getDescription())
+                .rules(existing.getRules())
+                .build());
     }
 }

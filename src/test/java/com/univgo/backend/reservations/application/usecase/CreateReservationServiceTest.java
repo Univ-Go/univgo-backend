@@ -30,6 +30,7 @@ import com.univgo.backend.spaces.domain.SpaceCategory;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -40,7 +41,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -62,7 +62,6 @@ class CreateReservationServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
-    @InjectMocks
     private CreateReservationService service;
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -78,6 +77,13 @@ class CreateReservationServiceTest {
 
     @BeforeEach
     void setUp() {
+        service = new CreateReservationService(
+                reservationRepositoryPort,
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.systemDefaultZone());
         futureCommand = new CreateReservationCommand(USER_ID, SPACE_ID, FUTURE_DATE, BLOCK_START);
     }
 
@@ -131,34 +137,29 @@ class CreateReservationServiceTest {
 
     /** The day's booking, held for a block of this same space that is not the one being asked for. */
     private static Reservation sameSpaceEarlierBlock() {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                USER_ID,
-                SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(8, 0),
-                LocalTime.of(10, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(USER_ID)
+                .spaceId(SPACE_ID)
+                .reservationDate(FUTURE_DATE)
+                .blockStart(LocalTime.of(8, 0))
+                .blockEnd(LocalTime.of(10, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     /** {@code endsAt} null is the switch's own closure: shut until somebody reverts it. */
     private static SpaceClosure closure(LocalDateTime endsAt) {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                LocalDateTime.now().minusHours(1),
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
-                UUID.randomUUID(),
-                LocalDateTime.now(),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(LocalDateTime.now().minusHours(1))
+                .endsAt(endsAt)
+                .reason(ClosureReason.MAINTENANCE)
+                .createdBy(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     @Test
@@ -277,15 +278,16 @@ class CreateReservationServiceTest {
     }
 
     private static Space space(int capacity) {
-        return new Space(
-                SPACE_ID,
-                "Test space",
-                "Bloque A",
-                capacity,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Un espacio de prueba",
-                List.of());
+        return Space.builder()
+                .id(SPACE_ID)
+                .name("Test space")
+                .location("Bloque A")
+                .capacity(capacity)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Un espacio de prueba")
+                .rules(List.of())
+                .build();
     }
 
     private static SpaceSchedule schedule(LocalTime start, LocalTime end) {
@@ -293,18 +295,15 @@ class CreateReservationServiceTest {
     }
 
     private static Reservation activeReservation() {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                UUID.randomUUID(),
-                SPACE_ID,
-                FUTURE_DATE,
-                BLOCK_START,
-                BLOCK_END,
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .reservationDate(FUTURE_DATE)
+                .blockStart(BLOCK_START)
+                .blockEnd(BLOCK_END)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }
