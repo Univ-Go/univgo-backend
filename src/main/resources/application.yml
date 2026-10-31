@@ -61,6 +61,9 @@ aws:
     bucket: ${AWS_S3_BUCKET}
 
 univgo:
+  # The institution's IANA zone. Every block, check-in window and stored timestamp is wall-clock
+  # time here, whatever zone the host runs in (Render's is UTC).
+  timezone: ${UNIVGO_TIMEZONE:America/Bogota}
   spaces:
     images:
       # Mirrors `images.sizes` in the frontend's vercel.json: the derivatives are what the browser

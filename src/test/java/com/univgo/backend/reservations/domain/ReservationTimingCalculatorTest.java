@@ -121,6 +121,16 @@ class ReservationTimingCalculatorTest {
         assertThat(stateAt(LocalTime.of(14, 5), createdAt, null, cancelledAt)).isEqualTo(ReservationState.CANCELLED);
     }
 
+    @Test
+    void at_921_the_10_12_and_14_blocks_are_all_still_bookable() {
+        LocalDateTime now = LocalDateTime.of(DATE, LocalTime.of(9, 21));
+        for (int end : new int[] {12, 14, 16}) {
+            assertThat(ReservationTimingCalculator.isBlockStillBookable(DATE, LocalTime.of(end, 0), now, MIN_USAGE, TOLERANCE))
+                    .isTrue();
+        }
+    }
+
+
     private static ReservationState stateAt(
             LocalTime now, LocalDateTime createdAt, LocalDateTime checkedInAt, LocalDateTime cancelledAt) {
         return ReservationTimingCalculator.stateAt(
