@@ -6,6 +6,7 @@ import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort
 import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 
@@ -14,11 +15,15 @@ public class CloseSpaceService implements CloseSpaceUseCase {
 
     private final SpaceRepositoryPort spaceRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public CloseSpaceService(
-            SpaceRepositoryPort spaceRepositoryPort, SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceRepositoryPort spaceRepositoryPort,
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -27,18 +32,17 @@ public class CloseSpaceService implements CloseSpaceUseCase {
             throw new SpaceNotFoundException(command.spaceId());
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
-        return spaceClosureRepositoryPort.save(new SpaceClosure(
-                Uuidv7Generator.generate(),
-                command.spaceId(),
-                command.startsAt() == null ? now : command.startsAt(),
-                command.endsAt(),
-                command.reason(),
-                command.details(),
-                command.actor(),
-                now,
-                null,
-                null));
+        return spaceClosureRepositoryPort.save(SpaceClosure.builder()
+                .id(Uuidv7Generator.generate())
+                .spaceId(command.spaceId())
+                .startsAt(command.startsAt() == null ? now : command.startsAt())
+                .endsAt(command.endsAt())
+                .reason(command.reason())
+                .details(command.details())
+                .createdBy(command.actor())
+                .createdAt(now)
+                .build());
     }
 }

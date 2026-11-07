@@ -103,14 +103,15 @@ public class SpaceRepositoryAdapter implements SpaceRepositoryPort {
     }
 
     private static Space toDomain(SpaceJpaEntity entity) {
-        return new Space(
-                entity.getId(),
-                entity.getName(),
-                entity.getLocation(),
-                entity.getCapacity(),
-                entity.getSpaceTypeId(),
-                entity.getSpaceType().getCategory(),
-                entity.getDescription(),
-                Arrays.asList(entity.getRules()));
+        return Space.builder()
+                .id(entity.getId())
+                .name(entity.getName())
+                .location(entity.getLocation())
+                .capacity(entity.getCapacity())
+                .spaceTypeId(entity.getSpaceTypeId())
+                .category(entity.getSpaceType().getCategory())
+                .description(entity.getDescription())
+                .rules(Arrays.asList(entity.getRules()))
+                .build();
     }
 }

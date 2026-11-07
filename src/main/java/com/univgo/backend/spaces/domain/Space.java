@@ -19,23 +19,77 @@ public class Space {
      * moment being asked about (spec §12), and that is a question about time. `SpaceClosures`
      * answers it.
      */
-    public Space(
-            UUID id,
-            String name,
-            String location,
-            int capacity,
-            UUID spaceTypeId,
-            SpaceCategory category,
-            String description,
-            List<String> rules) {
-        this.id = id;
-        this.name = name;
-        this.location = location;
-        this.capacity = capacity;
-        this.spaceTypeId = spaceTypeId;
-        this.category = category;
-        this.description = description;
-        this.rules = List.copyOf(rules);
+    private Space(Builder builder) {
+        this.id = builder.id;
+        this.name = builder.name;
+        this.location = builder.location;
+        this.capacity = builder.capacity;
+        this.spaceTypeId = builder.spaceTypeId;
+        this.category = builder.category;
+        this.description = builder.description;
+        this.rules = List.copyOf(builder.rules);
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private String name;
+        private String location;
+        private int capacity;
+        private UUID spaceTypeId;
+        private SpaceCategory category;
+        private String description;
+        private List<String> rules = List.of();
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder location(String location) {
+            this.location = location;
+            return this;
+        }
+
+        public Builder capacity(int capacity) {
+            this.capacity = capacity;
+            return this;
+        }
+
+        public Builder spaceTypeId(UUID spaceTypeId) {
+            this.spaceTypeId = spaceTypeId;
+            return this;
+        }
+
+        public Builder category(SpaceCategory category) {
+            this.category = category;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder rules(List<String> rules) {
+            this.rules = rules;
+            return this;
+        }
+
+        public Space build() {
+            return new Space(this);
+        }
     }
 
     public UUID getId() {

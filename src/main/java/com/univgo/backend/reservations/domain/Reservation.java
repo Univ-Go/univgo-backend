@@ -27,39 +27,119 @@ public class Reservation {
     private LocalDateTime cancelledAt;
     private CancelledBy cancelledBy;
 
-    public Reservation(
-            UUID id,
-            String qrCodeData,
-            String confirmationCode,
-            UUID userId,
-            UUID spaceId,
-            LocalDate reservationDate,
-            LocalTime blockStart,
-            LocalTime blockEnd,
-            LocalDateTime createdAt,
-            LocalDateTime checkedInAt,
-            LocalDateTime cancelledAt,
-            CancelledBy cancelledBy) {
-        if (!blockEnd.isAfter(blockStart)) {
+    private Reservation(Builder builder) {
+        if (!builder.blockEnd.isAfter(builder.blockStart)) {
             throw new IllegalArgumentException("blockEnd must be after blockStart");
         }
-        this.id = id;
-        this.qrCodeData = qrCodeData;
-        this.confirmationCode = confirmationCode;
-        this.userId = userId;
-        this.spaceId = spaceId;
-        this.reservationDate = reservationDate;
-        this.blockStart = blockStart;
-        this.blockEnd = blockEnd;
-        this.createdAt = createdAt;
-        this.checkedInAt = checkedInAt;
-        this.cancelledAt = cancelledAt;
-        this.cancelledBy = cancelledBy;
+        this.id = builder.id;
+        this.qrCodeData = builder.qrCodeData;
+        this.confirmationCode = builder.confirmationCode;
+        this.userId = builder.userId;
+        this.spaceId = builder.spaceId;
+        this.reservationDate = builder.reservationDate;
+        this.blockStart = builder.blockStart;
+        this.blockEnd = builder.blockEnd;
+        this.createdAt = builder.createdAt;
+        this.checkedInAt = builder.checkedInAt;
+        this.cancelledAt = builder.cancelledAt;
+        this.cancelledBy = builder.cancelledBy;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private String qrCodeData;
+        private String confirmationCode;
+        private UUID userId;
+        private UUID spaceId;
+        private LocalDate reservationDate;
+        private LocalTime blockStart;
+        private LocalTime blockEnd;
+        private LocalDateTime createdAt;
+        private LocalDateTime checkedInAt;
+        private LocalDateTime cancelledAt;
+        private CancelledBy cancelledBy;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder qrCodeData(String qrCodeData) {
+            this.qrCodeData = qrCodeData;
+            return this;
+        }
+
+        public Builder confirmationCode(String confirmationCode) {
+            this.confirmationCode = confirmationCode;
+            return this;
+        }
+
+        public Builder userId(UUID userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder spaceId(UUID spaceId) {
+            this.spaceId = spaceId;
+            return this;
+        }
+
+        public Builder reservationDate(LocalDate reservationDate) {
+            this.reservationDate = reservationDate;
+            return this;
+        }
+
+        public Builder blockStart(LocalTime blockStart) {
+            this.blockStart = blockStart;
+            return this;
+        }
+
+        public Builder blockEnd(LocalTime blockEnd) {
+            this.blockEnd = blockEnd;
+            return this;
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+            return this;
+        }
+
+        public Builder checkedInAt(LocalDateTime checkedInAt) {
+            this.checkedInAt = checkedInAt;
+            return this;
+        }
+
+        public Builder cancelledAt(LocalDateTime cancelledAt) {
+            this.cancelledAt = cancelledAt;
+            return this;
+        }
+
+        public Builder cancelledBy(CancelledBy cancelledBy) {
+            this.cancelledBy = cancelledBy;
+            return this;
+        }
+
+        public Reservation build() {
+            return new Reservation(this);
+        }
     }
 
     public ReservationState stateAt(LocalDateTime now, Duration tolerance, Duration minUsage) {
         return ReservationTimingCalculator.stateAt(
-                now, blockStartDateTime(), blockEndDateTime(), createdAt, checkedInAt, cancelledAt, tolerance, minUsage);
+                now,
+                blockStartDateTime(),
+                blockEndDateTime(),
+                createdAt,
+                new ReservationTimingCalculator.ReservationOutcome(checkedInAt, cancelledAt),
+                tolerance,
+                minUsage);
     }
 
     public void cancel(CancelledBy actor, LocalDateTime now, Duration tolerance, Duration minUsage) {

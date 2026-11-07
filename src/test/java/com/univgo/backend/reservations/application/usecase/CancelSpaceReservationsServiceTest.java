@@ -10,14 +10,15 @@ import com.univgo.backend.reservations.application.port.out.InstitutionConfigRep
 import com.univgo.backend.reservations.application.port.out.ReservationRepositoryPort;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -30,8 +31,13 @@ class CancelSpaceReservationsServiceTest {
     @Mock
     private InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
 
-    @InjectMocks
     private CancelSpaceReservationsService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new CancelSpaceReservationsService(
+                reservationRepositoryPort, institutionConfigRepositoryPort, Clock.systemDefaultZone());
+    }
 
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
     private static final UUID SPACE_ID = UUID.randomUUID();
@@ -65,18 +71,15 @@ class CancelSpaceReservationsServiceTest {
     }
 
     private static Reservation reservation() {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                UUID.randomUUID(),
-                SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .reservationDate(FUTURE_DATE)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

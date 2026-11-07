@@ -67,7 +67,7 @@ public class ThumbnailatorSpaceImageResizer implements SpaceImageResizerPort {
                     .scale(1)
                     .useExifOrientation(true)
                     .asBufferedImage();
-        } catch (IOException | IllegalArgumentException notAnImage) {
+        } catch (IOException | IllegalArgumentException _) {
             throw new UnreadableImageException(upload.filename(), "it is not a readable JPEG or PNG");
         }
     }
@@ -86,7 +86,7 @@ public class ThumbnailatorSpaceImageResizer implements SpaceImageResizerPort {
                     .outputFormat(OUTPUT_FORMAT)
                     .outputQuality(properties.jpegQuality())
                     .toOutputStream(out);
-        } catch (IOException cannotEncode) {
+        } catch (IOException _) {
             throw new UnreadableImageException(upload.filename(), "it could not be re-encoded");
         }
         return out.toByteArray();

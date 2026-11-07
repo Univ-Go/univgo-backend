@@ -17,15 +17,16 @@ import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.spaces.application.port.out.SpaceClosureRepositoryPort;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -44,8 +45,17 @@ class CheckInReservationServiceTest {
     @Mock
     private SpaceClosureRepositoryPort spaceClosureRepositoryPort;
 
-    @InjectMocks
     private CheckInReservationService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new CheckInReservationService(
+                reservationRepositoryPort,
+                institutionConfigRepositoryPort,
+                userRepositoryPort,
+                spaceClosureRepositoryPort,
+                Clock.systemDefaultZone());
+    }
 
     private static final InstitutionConfig CONFIG = new InstitutionConfig(120, 15, 75, 1);
     private static final LocalDate FUTURE_DATE = LocalDate.now().plusDays(7);
@@ -169,13 +179,28 @@ class CheckInReservationServiceTest {
     }
 
     private static Reservation reservationOn(LocalDate date, LocalTime start, LocalTime end, LocalDateTime createdAt) {
-        return new Reservation(
-                UUID.randomUUID(), CODE, null, UUID.randomUUID(), SPACE_ID, date, start, end, createdAt, null, null, null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(CODE)
+                .userId(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .reservationDate(date)
+                .blockStart(start)
+                .blockEnd(end)
+                .createdAt(createdAt)
+                .build();
     }
 
     private static User student() {
-        return new User(
-                UUID.randomUUID(), "123", "ada@univgo.edu", "Ada", "Lovelace", "hash", Set.of("STUDENT"),
-                "Facultad de Ingeniería");
+        return User.builder()
+                .id(UUID.randomUUID())
+                .identification("123")
+                .email("ada@univgo.edu")
+                .firstName("Ada")
+                .lastName("Lovelace")
+                .password("hash")
+                .roles(Set.of("STUDENT"))
+                .school("Facultad de Ingeniería")
+                .build();
     }
 }

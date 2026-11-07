@@ -2,7 +2,6 @@ package com.univgo.backend.reservations.application.usecase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -23,6 +22,7 @@ import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceImageView;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.SpaceSchedule;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -33,7 +33,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -58,11 +57,18 @@ class GetSpaceCatalogServiceTest {
     @Mock
     private GetSpaceImagesUseCase getSpaceImagesUseCase;
 
-    @InjectMocks
     private GetSpaceCatalogService service;
 
     @BeforeEach
-    void noImagesUnlessATestSaysOtherwise() {
+    void setUp() {
+        service = new GetSpaceCatalogService(
+                spaceRepositoryPort,
+                spaceScheduleRepositoryPort,
+                reservationRepositoryPort,
+                institutionConfigRepositoryPort,
+                spaceClosureRepositoryPort,
+                getSpaceImagesUseCase,
+                Clock.systemDefaultZone());
         lenient().when(getSpaceImagesUseCase.allBySpace()).thenReturn(Map.of());
     }
 
@@ -217,29 +223,28 @@ class GetSpaceCatalogServiceTest {
     }
 
     private static SpaceClosure closure(LocalDateTime startsAt, LocalDateTime endsAt) {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
-                UUID.randomUUID(),
-                LocalDateTime.now(),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(startsAt)
+                .endsAt(endsAt)
+                .reason(ClosureReason.MAINTENANCE)
+                .createdBy(UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     private static Space space(int capacity) {
-        return new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Complejo Deportivo Central",
-                capacity,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio",
-                List.of("Usa toalla sobre las máquinas"));
+        return Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Complejo Deportivo Central")
+                .capacity(capacity)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio")
+                .rules(List.of("Usa toalla sobre las máquinas"))
+                .build();
     }
 
     private static List<SpaceSchedule> openFrom(int startHour, int endHour) {
@@ -248,18 +253,15 @@ class GetSpaceCatalogServiceTest {
     }
 
     private static Reservation activeReservation() {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                UUID.randomUUID(),
-                SPACE_ID,
-                FUTURE_DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .reservationDate(FUTURE_DATE)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

@@ -68,14 +68,18 @@ class SpaceClosureTest {
     void cannotBeRevertedTwice() {
         SpaceClosure indefinite = closure(LocalDateTime.of(DAY, LocalTime.of(9, 0)), null);
         indefinite.revert(ADMIN_ID, LocalDateTime.of(DAY, LocalTime.of(12, 0)));
+        LocalDateTime secondAttempt = LocalDateTime.of(DAY, LocalTime.of(13, 0));
 
-        assertThatThrownBy(() -> indefinite.revert(ADMIN_ID, LocalDateTime.of(DAY, LocalTime.of(13, 0))))
+        assertThatThrownBy(() -> indefinite.revert(ADMIN_ID, secondAttempt))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     void cannotEndBeforeItStarts() {
-        assertThatThrownBy(() -> closure(LocalDateTime.of(DAY, LocalTime.of(12, 0)), LocalDateTime.of(DAY, LocalTime.of(9, 0))))
+        LocalDateTime startsAt = LocalDateTime.of(DAY, LocalTime.of(12, 0));
+        LocalDateTime endsAt = LocalDateTime.of(DAY, LocalTime.of(9, 0));
+
+        assertThatThrownBy(() -> closure(startsAt, endsAt))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -90,16 +94,14 @@ class SpaceClosureTest {
     }
 
     private static SpaceClosure closure(LocalDateTime startsAt, LocalDateTime endsAt) {
-        return new SpaceClosure(
-                UUID.randomUUID(),
-                SPACE_ID,
-                startsAt,
-                endsAt,
-                ClosureReason.MAINTENANCE,
-                null,
-                ADMIN_ID,
-                LocalDateTime.now(),
-                null,
-                null);
+        return SpaceClosure.builder()
+                .id(UUID.randomUUID())
+                .spaceId(SPACE_ID)
+                .startsAt(startsAt)
+                .endsAt(endsAt)
+                .reason(ClosureReason.MAINTENANCE)
+                .createdBy(ADMIN_ID)
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 }

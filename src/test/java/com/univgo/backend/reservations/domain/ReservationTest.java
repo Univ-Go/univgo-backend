@@ -32,8 +32,8 @@ class ReservationTest {
         Reservation reservation = reservedYesterday();
 
         // Block starts 14:00; cancellation window for a student closes at 13:00.
-        assertThatThrownBy(() ->
-                        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(13, 30)), TOLERANCE, MIN_USAGE))
+        LocalDateTime withinWindow = LocalDateTime.of(DATE, LocalTime.of(13, 30));
+        assertThatThrownBy(() -> reservation.cancel(CancelledBy.STUDENT, withinWindow, TOLERANCE, MIN_USAGE))
                 .isInstanceOf(CancellationWindowClosedException.class);
     }
 
@@ -62,8 +62,8 @@ class ReservationTest {
         Reservation reservation = reservedYesterday();
         reservation.checkIn(LocalDateTime.of(DATE, LocalTime.of(14, 0)));
 
-        assertThatThrownBy(() ->
-                        reservation.cancel(CancelledBy.ADMIN, LocalDateTime.of(DATE, LocalTime.of(14, 30)), TOLERANCE, MIN_USAGE))
+        LocalDateTime whileInProgress = LocalDateTime.of(DATE, LocalTime.of(14, 30));
+        assertThatThrownBy(() -> reservation.cancel(CancelledBy.ADMIN, whileInProgress, TOLERANCE, MIN_USAGE))
                 .isInstanceOf(CannotCancelInProgressReservationException.class);
     }
 
@@ -71,8 +71,8 @@ class ReservationTest {
     void cancellingAnAlreadyExpiredReservationIsRejected() {
         Reservation reservation = reservedYesterday();
 
-        assertThatThrownBy(() ->
-                        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(14, 20)), TOLERANCE, MIN_USAGE))
+        LocalDateTime afterExpiry = LocalDateTime.of(DATE, LocalTime.of(14, 20));
+        assertThatThrownBy(() -> reservation.cancel(CancelledBy.STUDENT, afterExpiry, TOLERANCE, MIN_USAGE))
                 .isInstanceOf(InvalidReservationStateException.class);
     }
 
@@ -81,8 +81,8 @@ class ReservationTest {
         Reservation reservation = reservedYesterday();
         reservation.checkIn(LocalDateTime.of(DATE, LocalTime.of(14, 0)));
 
-        assertThatThrownBy(() ->
-                        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(16, 0)), TOLERANCE, MIN_USAGE))
+        LocalDateTime afterFinish = LocalDateTime.of(DATE, LocalTime.of(16, 0));
+        assertThatThrownBy(() -> reservation.cancel(CancelledBy.STUDENT, afterFinish, TOLERANCE, MIN_USAGE))
                 .isInstanceOf(InvalidReservationStateException.class);
     }
 
@@ -91,24 +91,21 @@ class ReservationTest {
         Reservation reservation = reservedYesterday();
         reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(13, 0)), TOLERANCE, MIN_USAGE);
 
-        assertThatThrownBy(() ->
-                        reservation.cancel(CancelledBy.STUDENT, LocalDateTime.of(DATE, LocalTime.of(13, 30)), TOLERANCE, MIN_USAGE))
+        LocalDateTime secondAttempt = LocalDateTime.of(DATE, LocalTime.of(13, 30));
+        assertThatThrownBy(() -> reservation.cancel(CancelledBy.STUDENT, secondAttempt, TOLERANCE, MIN_USAGE))
                 .isInstanceOf(InvalidReservationStateException.class);
     }
 
     private static Reservation reservedYesterday() {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                null,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                DATE,
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.of(DATE.minusDays(1), LocalTime.of(9, 0)),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .userId(UUID.randomUUID())
+                .spaceId(UUID.randomUUID())
+                .reservationDate(DATE)
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.of(DATE.minusDays(1), LocalTime.of(9, 0)))
+                .build();
     }
 }

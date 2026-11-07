@@ -56,19 +56,22 @@ public final class ReservationTimingCalculator {
         return toleranceDeadline.isBefore(minUsageDeadline) ? toleranceDeadline : minUsageDeadline;
     }
 
+    /** The two human actions, besides creation, that settle a reservation's outcome. */
+    public record ReservationOutcome(LocalDateTime checkedInAt, LocalDateTime cancelledAt) {
+    }
+
     public static ReservationState stateAt(
             LocalDateTime now,
             LocalDateTime blockStart,
             LocalDateTime blockEnd,
             LocalDateTime createdAt,
-            LocalDateTime checkedInAt,
-            LocalDateTime cancelledAt,
+            ReservationOutcome outcome,
             Duration tolerance,
             Duration minUsage) {
-        if (cancelledAt != null) {
+        if (outcome.cancelledAt() != null) {
             return ReservationState.CANCELLED;
         }
-        if (checkedInAt != null) {
+        if (outcome.checkedInAt() != null) {
             return now.isBefore(blockEnd) ? ReservationState.IN_PROGRESS : ReservationState.FINISHED;
         }
         LocalDateTime closesAt = checkInClosesAt(blockStart, blockEnd, createdAt, tolerance, minUsage);

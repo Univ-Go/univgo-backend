@@ -32,9 +32,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 class LoginServiceTest {
 
     private static final String PASSWORD = "Contrasena123!";
-    private static final User USER = new User(
-            UUID.randomUUID(), "1234567890", "sofia.ramirez@univgo.edu", "Sofía", "Ramírez", "hash",
-            Set.of("STUDENT"), "Facultad de Ingeniería");
+    private static final User USER = User.builder()
+            .id(UUID.randomUUID())
+            .identification("1234567890")
+            .email("sofia.ramirez@univgo.edu")
+            .firstName("Sofía")
+            .lastName("Ramírez")
+            .password("hash")
+            .roles(Set.of("STUDENT"))
+            .school("Facultad de Ingeniería")
+            .build();
 
     @Mock
     private UserRepositoryPort userRepositoryPort;
@@ -72,8 +79,9 @@ class LoginServiceTest {
     @Test
     void unknownIdentifierIsRejectedWithoutStoringAnything() {
         when(userRepositoryPort.findByLoginIdentifier("nobody")).thenReturn(Optional.empty());
+        LoginCommand command = new LoginCommand("nobody", PASSWORD);
 
-        assertThatThrownBy(() -> service.execute(new LoginCommand("nobody", PASSWORD)))
+        assertThatThrownBy(() -> service.execute(command))
                 .isInstanceOf(InvalidCredentialsException.class);
         verify(refreshTokenRepositoryPort, never()).save(any());
     }
@@ -82,8 +90,8 @@ class LoginServiceTest {
     void wrongPasswordIsRejectedWithTheSameErrorAsAnUnknownUser() {
         when(userRepositoryPort.findByLoginIdentifier("1234567890")).thenReturn(Optional.of(USER));
         when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
-
-        assertThatThrownBy(() -> service.execute(new LoginCommand("1234567890", "wrong")))
+        LoginCommand command = new LoginCommand("1234567890", "wrong");
+        assertThatThrownBy(() -> service.execute(command))
                 .isInstanceOf(InvalidCredentialsException.class);
         verify(refreshTokenRepositoryPort, never()).save(any());
     }

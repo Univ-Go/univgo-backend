@@ -8,26 +8,28 @@ final class RefreshTokenPersistenceMapper {
     }
 
     static RefreshToken toDomain(RefreshTokenJpaEntity entity) {
-        return new RefreshToken(
-                entity.getId(),
-                entity.getUserId(),
-                entity.getTokenHash(),
-                entity.getExpiresAt(),
-                entity.getCreatedAt(),
-                entity.getRevokedAt(),
-                entity.getRevokedReason(),
-                entity.getReplacedById());
+        return RefreshToken.builder()
+                .id(entity.getId())
+                .userId(entity.getUserId())
+                .tokenHash(entity.getTokenHash())
+                .expiresAt(entity.getExpiresAt())
+                .createdAt(entity.getCreatedAt())
+                .revokedAt(entity.getRevokedAt())
+                .revokedReason(entity.getRevokedReason())
+                .replacedById(entity.getReplacedById())
+                .build();
     }
 
     static RefreshTokenJpaEntity toEntity(RefreshToken domain) {
-        return new RefreshTokenJpaEntity(
-                domain.getId(),
-                domain.getUserId(),
-                domain.getTokenHash(),
-                domain.getExpiresAt(),
-                domain.getCreatedAt(),
-                domain.getRevokedAt(),
-                domain.getRevokedReason(),
-                domain.getReplacedById());
+        return RefreshTokenJpaEntity.builder()
+                .id(domain.getId())
+                .userId(domain.getUserId())
+                .tokenHash(domain.getTokenHash())
+                .expiresAt(domain.getExpiresAt())
+                .createdAt(domain.getCreatedAt())
+                .revokedAt(domain.getRevokedAt())
+                .revokedReason(domain.getRevokedReason())
+                .replacedById(domain.getReplacedById())
+                .build();
     }
 }

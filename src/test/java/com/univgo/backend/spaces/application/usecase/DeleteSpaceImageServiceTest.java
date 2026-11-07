@@ -109,8 +109,9 @@ class DeleteSpaceImageServiceTest {
     void refusesAPhotographThatIsNotThisSpaces() {
         when(spaceImageRepositoryPort.findBySpaceId(SPACE_ID))
                 .thenReturn(List.of(image(FIRST, 0), image(SECOND, 1)));
+        UUID unknownImageId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, UUID.randomUUID()))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, unknownImageId))
                 .isInstanceOf(SpaceImageNotFoundException.class);
 
         verify(spaceImageRepositoryPort, never()).delete(any());

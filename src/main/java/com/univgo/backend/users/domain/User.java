@@ -14,23 +14,19 @@ public class User {
     private final Set<String> roles;
     private final String school;
 
-    public User(
-            UUID id,
-            String identification,
-            String email,
-            String firstName,
-            String lastName,
-            String password,
-            Set<String> roles,
-            String school) {
-        this.id = id;
-        this.identification = identification;
-        this.email = email;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.password = password;
-        this.roles = roles;
-        this.school = school;
+    private User(Builder builder) {
+        this.id = builder.id;
+        this.identification = builder.identification;
+        this.email = builder.email;
+        this.firstName = builder.firstName;
+        this.lastName = builder.lastName;
+        this.password = builder.password;
+        this.roles = builder.roles;
+        this.school = builder.school;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public void rename(String firstName, String lastName) {
@@ -73,5 +69,63 @@ public class User {
 
     public String getSchool() {
         return school;
+    }
+
+    public static final class Builder {
+        private UUID id;
+        private String identification;
+        private String email;
+        private String firstName;
+        private String lastName;
+        private String password;
+        private Set<String> roles;
+        private String school;
+
+        private Builder() {
+        }
+
+        public Builder id(UUID id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder identification(String identification) {
+            this.identification = identification;
+            return this;
+        }
+
+        public Builder email(String email) {
+            this.email = email;
+            return this;
+        }
+
+        public Builder firstName(String firstName) {
+            this.firstName = firstName;
+            return this;
+        }
+
+        public Builder lastName(String lastName) {
+            this.lastName = lastName;
+            return this;
+        }
+
+        public Builder password(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public Builder roles(Set<String> roles) {
+            this.roles = roles;
+            return this;
+        }
+
+        public Builder school(String school) {
+            this.school = school;
+            return this;
+        }
+
+        public User build() {
+            return new User(this);
+        }
     }
 }

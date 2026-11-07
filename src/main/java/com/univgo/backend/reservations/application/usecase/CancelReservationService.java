@@ -7,6 +7,7 @@ import com.univgo.backend.reservations.domain.CancelledBy;
 import com.univgo.backend.reservations.domain.InstitutionConfig;
 import com.univgo.backend.reservations.domain.Reservation;
 import com.univgo.backend.reservations.domain.ReservationNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -16,12 +17,15 @@ public class CancelReservationService implements CancelReservationUseCase {
 
     private final ReservationRepositoryPort reservationRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
+    private final Clock clock;
 
     public CancelReservationService(
             ReservationRepositoryPort reservationRepositoryPort,
-            InstitutionConfigRepositoryPort institutionConfigRepositoryPort) {
+            InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -36,7 +40,7 @@ public class CancelReservationService implements CancelReservationUseCase {
 
         InstitutionConfig config = institutionConfigRepositoryPort.getCurrent();
         CancelledBy actor = actingAsAdmin ? CancelledBy.ADMIN : CancelledBy.STUDENT;
-        reservation.cancel(actor, LocalDateTime.now(), config.tolerance(), config.minUsage());
+        reservation.cancel(actor, LocalDateTime.now(clock), config.tolerance(), config.minUsage());
 
         return reservationRepositoryPort.save(reservation);
     }

@@ -44,8 +44,15 @@ class ChangePasswordServiceTest {
     @BeforeEach
     void setUp() {
         service = new ChangePasswordService(userRepositoryPort, userSessionRevokerPort, passwordEncoder);
-        user = new User(USER_ID, "123", "a@uni.edu", "Ana", "Ruiz",
-                passwordEncoder.encode(CURRENT), Set.of("STUDENT"), null);
+        user = User.builder()
+                .id(USER_ID)
+                .identification("123")
+                .email("a@uni.edu")
+                .firstName("Ana")
+                .lastName("Ruiz")
+                .password(passwordEncoder.encode(CURRENT))
+                .roles(Set.of("STUDENT"))
+                .build();
         when(userRepositoryPort.findById(USER_ID)).thenReturn(Optional.of(user));
     }
 

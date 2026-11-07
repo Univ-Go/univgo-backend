@@ -19,6 +19,7 @@ import com.univgo.backend.spaces.application.port.in.GetSpaceClosuresUseCase;
 import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
 import com.univgo.backend.users.domain.UserNotFoundException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -63,13 +64,21 @@ class AdminReservationsControllerTest {
                 getInstitutionConfigUseCase,
                 getSpaceClosuresUseCase,
                 createReservationUseCase,
-                userRepositoryPort);
+                userRepositoryPort,
+                Clock.systemDefaultZone());
     }
 
     @Test
     void resolvesStudentByIdentifierAndBooksForThem() {
-        User student = new User(
-                STUDENT_ID, "1234567890", "student@univgo.edu", "Student", "Name", "hash", Set.of("STUDENT"), null);
+        User student = User.builder()
+                .id(STUDENT_ID)
+                .identification("1234567890")
+                .email("student@univgo.edu")
+                .firstName("Student")
+                .lastName("Name")
+                .password("hash")
+                .roles(Set.of("STUDENT"))
+                .build();
         when(userRepositoryPort.findByLoginIdentifier("1234567890")).thenReturn(Optional.of(student));
         Reservation reservation = reservationFor(STUDENT_ID, GYM_SPACE_ID);
         when(createReservationUseCase.execute(any())).thenReturn(reservation);
@@ -111,8 +120,15 @@ class AdminReservationsControllerTest {
 
     @Test
     void gymAdminCanBookForTheGymSpace() {
-        User student = new User(
-                STUDENT_ID, "1234567890", "student@univgo.edu", "Student", "Name", "hash", Set.of("STUDENT"), null);
+        User student = User.builder()
+                .id(STUDENT_ID)
+                .identification("1234567890")
+                .email("student@univgo.edu")
+                .firstName("Student")
+                .lastName("Name")
+                .password("hash")
+                .roles(Set.of("STUDENT"))
+                .build();
         when(userRepositoryPort.findByLoginIdentifier("1234567890")).thenReturn(Optional.of(student));
         Reservation reservation = reservationFor(STUDENT_ID, GYM_SPACE_ID);
         when(createReservationUseCase.execute(any())).thenReturn(reservation);
@@ -127,19 +143,17 @@ class AdminReservationsControllerTest {
     }
 
     private static Reservation reservationFor(UUID userId, UUID spaceId) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                ConfirmationCodeGenerator.generate(),
-                userId,
-                spaceId,
-                LocalDate.now(),
-                LocalTime.of(14, 0),
-                LocalTime.of(16, 0),
-                LocalDateTime.now(),
-                null,
-                null,
-                null);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .confirmationCode(ConfirmationCodeGenerator.generate())
+                .userId(userId)
+                .spaceId(spaceId)
+                .reservationDate(LocalDate.now())
+                .blockStart(LocalTime.of(14, 0))
+                .blockEnd(LocalTime.of(16, 0))
+                .createdAt(LocalDateTime.now())
+                .build();
     }
 
     private static Authentication authFor(String authority) {

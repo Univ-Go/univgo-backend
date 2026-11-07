@@ -24,6 +24,7 @@ import com.univgo.backend.spaces.domain.Space;
 import com.univgo.backend.spaces.domain.SpaceClosures;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
 import com.univgo.backend.spaces.domain.TimeBlock;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,18 +40,21 @@ public class CreateReservationService implements CreateReservationUseCase {
     private final SpaceScheduleRepositoryPort spaceScheduleRepositoryPort;
     private final InstitutionConfigRepositoryPort institutionConfigRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public CreateReservationService(
             ReservationRepositoryPort reservationRepositoryPort,
             SpaceRepositoryPort spaceRepositoryPort,
             SpaceScheduleRepositoryPort spaceScheduleRepositoryPort,
             InstitutionConfigRepositoryPort institutionConfigRepositoryPort,
-            SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceClosureRepositoryPort spaceClosureRepositoryPort,
+            Clock clock) {
         this.reservationRepositoryPort = reservationRepositoryPort;
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceScheduleRepositoryPort = spaceScheduleRepositoryPort;
         this.institutionConfigRepositoryPort = institutionConfigRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     /**
@@ -70,7 +74,7 @@ public class CreateReservationService implements CreateReservationUseCase {
 
         TimeBlock block = findRequestedBlock(command, config);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         SpaceClosures closures = SpaceClosures.of(spaceClosureRepositoryPort.findInForceBySpaceId(spaceId));
 
         if (closures.shut(spaceId, date, block.start(), block.end())) {
@@ -107,19 +111,17 @@ public class CreateReservationService implements CreateReservationUseCase {
             throw new BlockCapacityFullException(spaceId, date, block.start(), block.end());
         }
 
-        Reservation reservation = new Reservation(
-                Uuidv7Generator.generate(),
-                UUID.randomUUID().toString(),
-                freeConfirmationCode(date),
-                command.userId(),
-                spaceId,
-                date,
-                block.start(),
-                block.end(),
-                now,
-                null,
-                null,
-                null);
+        Reservation reservation = Reservation.builder()
+                .id(Uuidv7Generator.generate())
+                .qrCodeData(UUID.randomUUID().toString())
+                .confirmationCode(freeConfirmationCode(date))
+                .userId(command.userId())
+                .spaceId(spaceId)
+                .reservationDate(date)
+                .blockStart(block.start())
+                .blockEnd(block.end())
+                .createdAt(now)
+                .build();
 
         return reservationRepositoryPort.save(reservation);
     }

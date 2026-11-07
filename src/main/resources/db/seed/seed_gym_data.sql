@@ -40,12 +40,16 @@ new_user_roles AS (
 ),
 
 new_spaces AS (
-  INSERT INTO spaces (name, capacity, space_type_id) VALUES
-    ('Cancha de básquetbol',           10, '1798287d-6a49-4651-981c-cbefc23b51b5'),
-    ('Cancha de Grama sintética (11)', 22, '1798287d-6a49-4651-981c-cbefc23b51b5'),
-    ('Cancha de Tenis de Campo A',      4, '1798287d-6a49-4651-981c-cbefc23b51b5'),
-    ('Cancha de Tenis de Campo B',      4, '1798287d-6a49-4651-981c-cbefc23b51b5'),
-    ('Cancha de Grama sintética (7)',  14, '1798287d-6a49-4651-981c-cbefc23b51b5')
+  INSERT INTO spaces (name, capacity, space_type_id)
+  SELECT v.name, v.capacity, t.space_type_id
+  FROM (VALUES
+    ('Cancha de básquetbol',           10),
+    ('Cancha de Grama sintética (11)', 22),
+    ('Cancha de Tenis de Campo A',      4),
+    ('Cancha de Tenis de Campo B',      4),
+    ('Cancha de Grama sintética (7)',  14)
+  ) AS v(name, capacity)
+  CROSS JOIN (SELECT '1798287d-6a49-4651-981c-cbefc23b51b5'::uuid AS space_type_id) AS t
   RETURNING id, name
 )
 
@@ -54,11 +58,9 @@ new_spaces AS (
 INSERT INTO space_schedules (space_id, day_of_week, start_time, end_time)
 SELECT s.id, d.dow, d.start_t, d.end_t
 FROM new_spaces s
-CROSS JOIN (VALUES
-  (1, TIME '06:00', TIME '22:00'),
-  (2, TIME '06:00', TIME '22:00'),
-  (3, TIME '06:00', TIME '22:00'),
-  (4, TIME '06:00', TIME '22:00'),
-  (5, TIME '06:00', TIME '22:00'),
-  (6, TIME '08:00', TIME '18:00')
+CROSS JOIN (
+  SELECT dow, TIME '06:00' AS start_t, TIME '22:00' AS end_t
+  FROM generate_series(1, 5) AS dow
+  UNION ALL
+  SELECT 6, TIME '08:00', TIME '18:00'
 ) AS d(dow, start_t, end_t);

@@ -7,6 +7,7 @@ import com.univgo.backend.spaces.application.port.out.SpaceRepositoryPort;
 import com.univgo.backend.spaces.domain.ClosureReason;
 import com.univgo.backend.spaces.domain.SpaceClosure;
 import com.univgo.backend.spaces.domain.SpaceNotFoundException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -26,11 +27,13 @@ public class SetSpaceMaintenanceService implements SetSpaceMaintenanceUseCase {
 
     private final SpaceRepositoryPort spaceRepositoryPort;
     private final SpaceClosureRepositoryPort spaceClosureRepositoryPort;
+    private final Clock clock;
 
     public SetSpaceMaintenanceService(
-            SpaceRepositoryPort spaceRepositoryPort, SpaceClosureRepositoryPort spaceClosureRepositoryPort) {
+            SpaceRepositoryPort spaceRepositoryPort, SpaceClosureRepositoryPort spaceClosureRepositoryPort, Clock clock) {
         this.spaceRepositoryPort = spaceRepositoryPort;
         this.spaceClosureRepositoryPort = spaceClosureRepositoryPort;
+        this.clock = clock;
     }
 
     @Override
@@ -39,7 +42,7 @@ public class SetSpaceMaintenanceService implements SetSpaceMaintenanceUseCase {
             throw new SpaceNotFoundException(spaceId);
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
         List<SpaceClosure> indefinite = spaceClosureRepositoryPort.findInForceBySpaceId(spaceId).stream()
                 .filter(SpaceClosure::isIndefinite)
                 .toList();
@@ -48,17 +51,14 @@ public class SetSpaceMaintenanceService implements SetSpaceMaintenanceUseCase {
             // Already shut with no end in sight: switching it on twice would stack closures that
             // then have to be reverted one by one.
             if (indefinite.isEmpty()) {
-                spaceClosureRepositoryPort.save(new SpaceClosure(
-                        Uuidv7Generator.generate(),
-                        spaceId,
-                        now,
-                        null,
-                        ClosureReason.MAINTENANCE,
-                        null,
-                        actor,
-                        now,
-                        null,
-                        null));
+                spaceClosureRepositoryPort.save(SpaceClosure.builder()
+                        .id(Uuidv7Generator.generate())
+                        .spaceId(spaceId)
+                        .startsAt(now)
+                        .reason(ClosureReason.MAINTENANCE)
+                        .createdBy(actor)
+                        .createdAt(now)
+                        .build());
             }
             return;
         }

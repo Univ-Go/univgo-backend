@@ -77,13 +77,29 @@ class GetSpaceAforoReportServiceTest {
 
     @Test
     void countsHowEachBlocksReservationsEndedAndListsWhoMadeThem() {
-        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(new Space(
-                SPACE_ID, "Gimnasio", "Bloque A", 30, UUID.randomUUID(), SpaceCategory.SPORTS, "", List.of())));
+        when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Bloque A")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("")
+                .rules(List.of())
+                .build()));
         when(institutionConfigRepositoryPort.getCurrent()).thenReturn(CONFIG);
         when(spaceClosureRepositoryPort.findInForceBySpaceId(SPACE_ID)).thenReturn(List.of());
         LocalDateTime start = LocalDateTime.of(PAST_DATE, BLOCK.start());
-        when(userRepositoryPort.findById(STUDENT_ID)).thenReturn(Optional.of(new User(
-                STUDENT_ID, "1001", "ana@univ.edu", "Ana", "Pérez", "x", Set.of("STUDENT"), "Ingeniería")));
+        when(userRepositoryPort.findById(STUDENT_ID)).thenReturn(Optional.of(User.builder()
+                .id(STUDENT_ID)
+                .identification("1001")
+                .email("ana@univ.edu")
+                .firstName("Ana")
+                .lastName("Pérez")
+                .password("x")
+                .roles(Set.of("STUDENT"))
+                .school("Ingeniería")
+                .build()));
         when(reservationRepositoryPort.findBySpaceAndDate(SPACE_ID, PAST_DATE))
                 .thenReturn(List.of(
                         reservation(start.plusMinutes(5), null, null),
@@ -108,18 +124,19 @@ class GetSpaceAforoReportServiceTest {
 
     private static Reservation reservation(
             LocalDateTime checkedInAt, LocalDateTime cancelledAt, CancelledBy cancelledBy) {
-        return new Reservation(
-                UUID.randomUUID(),
-                UUID.randomUUID().toString(),
-                "123456",
-                STUDENT_ID,
-                SPACE_ID,
-                PAST_DATE,
-                BLOCK.start(),
-                BLOCK.end(),
-                LocalDateTime.of(PAST_DATE.minusDays(1), LocalTime.NOON),
-                checkedInAt,
-                cancelledAt,
-                cancelledBy);
+        return Reservation.builder()
+                .id(UUID.randomUUID())
+                .qrCodeData(UUID.randomUUID().toString())
+                .confirmationCode("123456")
+                .userId(STUDENT_ID)
+                .spaceId(SPACE_ID)
+                .reservationDate(PAST_DATE)
+                .blockStart(BLOCK.start())
+                .blockEnd(BLOCK.end())
+                .createdAt(LocalDateTime.of(PAST_DATE.minusDays(1), LocalTime.NOON))
+                .checkedInAt(checkedInAt)
+                .cancelledAt(cancelledAt)
+                .cancelledBy(cancelledBy)
+                .build();
     }
 }

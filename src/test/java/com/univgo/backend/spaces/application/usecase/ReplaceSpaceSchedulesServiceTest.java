@@ -41,15 +41,16 @@ class ReplaceSpaceSchedulesServiceTest {
     private ReplaceSpaceSchedulesService service;
 
     private static Space space() {
-        return new Space(
-                SPACE_ID,
-                "Gimnasio",
-                "Complejo Deportivo Central",
-                30,
-                UUID.randomUUID(),
-                SpaceCategory.SPORTS,
-                "Sala de musculación y cardio.",
-                List.of());
+        return Space.builder()
+                .id(SPACE_ID)
+                .name("Gimnasio")
+                .location("Complejo Deportivo Central")
+                .capacity(30)
+                .spaceTypeId(UUID.randomUUID())
+                .category(SpaceCategory.SPORTS)
+                .description("Sala de musculación y cardio.")
+                .rules(List.of())
+                .build();
     }
 
     private static ScheduleWindow window(int dayOfWeek, int fromHour, int toHour) {
@@ -69,8 +70,9 @@ class ReplaceSpaceSchedulesServiceTest {
     @Test
     void validatesBeforeDeletingSoARefusedWeekLeavesTheOldOneStanding() {
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.of(space()));
+        List<ScheduleWindow> overlapping = List.of(window(1, 6, 12), window(1, 10, 22));
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, List.of(window(1, 6, 12), window(1, 10, 22))))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, overlapping))
                 .isInstanceOf(OverlappingScheduleException.class);
 
         verify(spaceScheduleRepositoryPort, never()).replaceAll(any(), anyList());
@@ -90,8 +92,9 @@ class ReplaceSpaceSchedulesServiceTest {
     @Test
     void refusesAnUnknownSpace() {
         when(spaceRepositoryPort.findById(SPACE_ID)).thenReturn(Optional.empty());
+        List<ScheduleWindow> oneWindow = List.of(window(1, 6, 22));
 
-        assertThatThrownBy(() -> service.execute(SPACE_ID, List.of(window(1, 6, 22))))
+        assertThatThrownBy(() -> service.execute(SPACE_ID, oneWindow))
                 .isInstanceOf(SpaceNotFoundException.class);
 
         verify(spaceScheduleRepositoryPort, never()).replaceAll(any(), anyList());

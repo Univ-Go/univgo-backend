@@ -14,6 +14,7 @@ import com.univgo.backend.users.application.port.out.UserRepositoryPort;
 import com.univgo.backend.users.domain.User;
 import com.univgo.backend.users.domain.UserNotFoundException;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.util.List;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,18 +35,21 @@ public class AdminReservationsController {
     private final GetSpaceClosuresUseCase getSpaceClosuresUseCase;
     private final CreateReservationUseCase createReservationUseCase;
     private final UserRepositoryPort userRepositoryPort;
+    private final Clock clock;
 
     public AdminReservationsController(
             GetAllReservationsUseCase getAllReservationsUseCase,
             GetInstitutionConfigUseCase getInstitutionConfigUseCase,
             GetSpaceClosuresUseCase getSpaceClosuresUseCase,
             CreateReservationUseCase createReservationUseCase,
-            UserRepositoryPort userRepositoryPort) {
+            UserRepositoryPort userRepositoryPort,
+            Clock clock) {
         this.getAllReservationsUseCase = getAllReservationsUseCase;
         this.getInstitutionConfigUseCase = getInstitutionConfigUseCase;
         this.getSpaceClosuresUseCase = getSpaceClosuresUseCase;
         this.createReservationUseCase = createReservationUseCase;
         this.userRepositoryPort = userRepositoryPort;
+        this.clock = clock;
     }
 
     @GetMapping
@@ -53,7 +57,7 @@ public class AdminReservationsController {
         InstitutionConfig config = getInstitutionConfigUseCase.execute();
         SpaceClosures closures = SpaceClosures.of(getSpaceClosuresUseCase.inForce());
         return getAllReservationsUseCase.execute().stream()
-                .map(r -> ReservationResponse.from(r, config, closures))
+                .map(r -> ReservationResponse.from(r, config, closures, clock))
                 .toList();
     }
 
@@ -77,6 +81,7 @@ public class AdminReservationsController {
         return ReservationResponse.from(
                 reservation,
                 getInstitutionConfigUseCase.execute(),
-                SpaceClosures.of(getSpaceClosuresUseCase.inForce()));
+                SpaceClosures.of(getSpaceClosuresUseCase.inForce()),
+                clock);
     }
 }

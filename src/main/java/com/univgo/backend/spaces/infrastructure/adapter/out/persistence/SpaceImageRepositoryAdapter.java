@@ -60,17 +60,18 @@ public class SpaceImageRepositoryAdapter implements SpaceImageRepositoryPort {
     }
 
     private static SpaceImageJpaEntity toEntity(SpaceImage image) {
-        return new SpaceImageJpaEntity(
-                image.id(),
-                image.spaceId(),
-                (short) image.position(),
-                image.originalKey(),
-                image.contentType(),
-                image.width(),
-                image.height(),
-                image.byteSize(),
-                image.createdAt(),
-                image.createdBy());
+        return SpaceImageJpaEntity.builder()
+                .id(image.id())
+                .spaceId(image.spaceId())
+                .position((short) image.position())
+                .originalKey(image.originalKey())
+                .contentType(image.contentType())
+                .width(image.width())
+                .height(image.height())
+                .byteSize(image.byteSize())
+                .createdAt(image.createdAt())
+                .createdBy(image.createdBy())
+                .build();
     }
 
     private static SpaceImage toDomain(SpaceImageJpaEntity entity) {

@@ -87,7 +87,9 @@ class CreateSpaceServiceTest {
 
     @Test
     void refusesASpaceWithNoPhotographs() {
-        assertThatThrownBy(() -> service.execute(command(List.of(), oneWindow())))
+        CreateSpaceCommand noPhotos = command(List.of(), oneWindow());
+
+        assertThatThrownBy(() -> service.execute(noPhotos))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("photograph");
 
@@ -97,8 +99,9 @@ class CreateSpaceServiceTest {
     @Test
     void refusesASpaceWithNoOpeningWindow() {
         when(spaceTypeRepositoryPort.findById(TYPE_ID)).thenReturn(Optional.of(TYPE));
+        CreateSpaceCommand noWindows = command(List.of(photo("a.jpg")), List.of());
 
-        assertThatThrownBy(() -> service.execute(command(List.of(photo("a.jpg")), List.of())))
+        assertThatThrownBy(() -> service.execute(noWindows))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("opening window");
 
@@ -108,8 +111,9 @@ class CreateSpaceServiceTest {
     @Test
     void refusesMorePhotographsThanTheSpaceMayHold() {
         doThrow(new TooManyImagesException(9, 8)).when(spaceImageWriter).guardTotal(anyInt());
+        CreateSpaceCommand onePhoto = command(List.of(photo("a.jpg")), oneWindow());
 
-        assertThatThrownBy(() -> service.execute(command(List.of(photo("a.jpg")), oneWindow())))
+        assertThatThrownBy(() -> service.execute(onePhoto))
                 .isInstanceOf(TooManyImagesException.class);
 
         verify(spaceRepositoryPort, never()).save(any());
@@ -118,8 +122,9 @@ class CreateSpaceServiceTest {
     @Test
     void refusesAnUnknownSpaceType() {
         when(spaceTypeRepositoryPort.findById(TYPE_ID)).thenReturn(Optional.empty());
+        CreateSpaceCommand validCommand = command(List.of(photo("a.jpg")), oneWindow());
 
-        assertThatThrownBy(() -> service.execute(command(List.of(photo("a.jpg")), oneWindow())))
+        assertThatThrownBy(() -> service.execute(validCommand))
                 .isInstanceOf(SpaceTypeNotFoundException.class);
 
         verify(spaceRepositoryPort, never()).save(any());
@@ -131,8 +136,9 @@ class CreateSpaceServiceTest {
         List<ScheduleWindow> overlapping = List.of(
                 new ScheduleWindow(1, LocalTime.of(6, 0), LocalTime.of(12, 0)),
                 new ScheduleWindow(1, LocalTime.of(10, 0), LocalTime.of(22, 0)));
+        CreateSpaceCommand overlappingCommand = command(List.of(photo("a.jpg")), overlapping);
 
-        assertThatThrownBy(() -> service.execute(command(List.of(photo("a.jpg")), overlapping)))
+        assertThatThrownBy(() -> service.execute(overlappingCommand))
                 .isInstanceOf(OverlappingScheduleException.class);
 
         verify(spaceRepositoryPort, never()).save(any());
