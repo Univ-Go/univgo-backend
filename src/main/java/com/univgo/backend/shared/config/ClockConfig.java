@@ -12,8 +12,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ClockConfig {
 
-    // ponytail: system zone, matching the rest of the app; switch to a fixed ZoneId (e.g.
-    // America/Bogota) here once the institution's timezone is decided app-wide.
+    // The default zone is the institution's (`univgo.timezone`), set in Application before any bean.
     @Bean
     public Clock clock() {
         return Clock.systemDefaultZone();
